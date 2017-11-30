@@ -1,0 +1,30 @@
+Package: hbcABC
+Type: Package
+Title: Rmarkdown templates for bioinformatic analysis
+Version: 0.1.0
+Depends:
+    R (>= 3.4.0),
+biocViews:
+    ReportWriting
+Authors@R: as.person(c(
+    "Michael Steinbaugh <mike@steinbaugh.com> [aut, cre]",
+    "Lorena Pantano <lorena.pantano@gmail.com> [aut]",
+    "Rory Kirchner <roryk@alum.mit.edu> [aut]",
+    "Victor Barrera <barrera.vic@gmail.com> [aut]",
+    "Mary Piper <mary.piper@gmail.com> [aut]",
+    "Meeta Mistry <meeta.mistry@gmail.com> [aut]",
+    "Radhika Khetani <rkhetani@hsph.harvard.edu> [aut]",
+    "Kayleigh Rutherford <kayrut1@gmail.com> [aut]",
+    "John Hutchinson <jnhutchinson@gmail.com> [aut]",
+    "Shannan Ho Sui <shosui@hsph.harvard.edu> [aut]",
+    "Harvard Chan Bioinformatics Core <bioinformatics@hsph.harvard.edu> [cph, fnd]"
+  ))
+Maintainer: lorena.pantano@gmail.com
+Description: List of Rmarkdown templates to support
+             different analysis at http://bioinformatics.sph.harvard.edu.
+BugReports: https://github.com/hbc/hbcABC/issues
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 6.0.1.9000
