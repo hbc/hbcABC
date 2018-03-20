@@ -6,20 +6,67 @@ Depends:
     R (>= 3.4.0),
 biocViews:
     ReportWriting
-Authors@R: as.person(c(
-    "Michael Steinbaugh <mike@steinbaugh.com> [aut, cre]",
-    "Lorena Pantano <lorena.pantano@gmail.com> [aut]",
-    "Rory Kirchner <roryk@alum.mit.edu> [aut]",
-    "Victor Barrera <barrera.vic@gmail.com> [aut]",
-    "Mary Piper <mary.piper@gmail.com> [aut]",
-    "Meeta Mistry <meeta.mistry@gmail.com> [aut]",
-    "Radhika Khetani <rkhetani@hsph.harvard.edu> [aut]",
-    "Kayleigh Rutherford <kayrut1@gmail.com> [aut]",
-    "John Hutchinson <jnhutchinson@gmail.com> [aut]",
-    "Shannan Ho Sui <shosui@hsph.harvard.edu> [aut]",
-    "Harvard Chan Bioinformatics Core <bioinformatics@hsph.harvard.edu> [cph, fnd]"
-  ))
-Maintainer: lorena.pantano@gmail.com
+Authors@R: c(
+    person(
+        given = "Lorena",
+        family = "Pantano",
+        email = "lorena.pantano@gmail.com",
+        role = c("aut", "cre")),
+    person(
+        given = "Michael",
+        family = "Steinbaugh",
+        email = "mike@steinbaugh.com",
+        role = "aut"),
+    person(
+        given = "Rory",
+        family = "Kirchner",
+        email = "roryk@alum.mit.edu",
+        role = "aut"),
+    person(
+        given = "Victor",
+        family = "Barrera",
+        email = "barrera.vic@gmail.com",
+        role = "aut"),
+    person(
+        given = "Mary",
+        family = "Piper",
+        email = "mary.piper@gmail.com",
+        role = "aut"),
+    person(
+        given = "Meeta",
+        family = "Mistry",
+        email = "meeta.mistry@gmail.com",
+        role = "aut"),
+    person(
+        given = "Radhika",
+        family = "Khetani",
+        email = "rkhetani@hsph.harvard.edu",
+        role = "aut"),
+    person(
+        given = "Kayleigh",
+        family = "Rutherford",
+        email = "kayrut1@gmail.com",
+        role = "aut"),
+    person(
+        given = "Oliver",
+        family = "Hofmann",
+        email = "ohofmann72@gmail.com",
+        role = "aut"),
+    person(
+        given = "John",
+        family = "Hutchinson",
+        email = "jnhutchinson@gmail.com",
+        role = "aut"),
+    person(
+        given = "Shannan",
+        family = "Ho Sui",
+        email = "shosui@hsph.harvard.edu",
+        role = "aut"),
+    person(
+        given = "Harvard Chan Bioinformatics Core",
+        email = "bioinformatics@hsph.harvard.edu",
+        role = c("cph", "fnd"))
+    )
 Description: List of Rmarkdown templates to support
              different analysis at http://bioinformatics.sph.harvard.edu.
 BugReports: https://github.com/hbc/hbcABC/issues

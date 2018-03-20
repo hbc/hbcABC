@@ -1,0 +1,308 @@
+---
+title: "Differential Expression for multiple contrasts"
+author: "`r getOption('author')`"
+date: "`r Sys.Date()`"
+bibliography: bibliography.bib
+html_document:
+    code_folding: hide
+    df_print: paged
+    highlight: pygments
+    number_sections: false
+    self_contained: true
+    theme: cosmo
+    toc: true
+    toc_float:
+        collapsed: true
+        smooth_scroll: false
+pdf_document:
+    number_sections: false
+    toc: true
+    toc_depth: 1
+params:
+    summarydata_fn: "~/repos/fibrosis-network/liver/human_samples/analysis/metadata.csv"
+    project_summary: "~/orch/hbc/fibrosis_network/iccb/nash/final_lncrna"
+    sample_name_col: "sampleName"
+    design: !r formula(~fibrosis_stage)
+    alpha: 0.01
+    lfc: 0
+    outputDir: "."
+---
+
+```{r knitr-setup}
+# Set seed for reproducibility
+set.seed(1454944673)
+
+opts_chunk[["set"]](
+    autodep = TRUE,
+    bootstrap.show.code = FALSE,
+    cache = TRUE,
+    cache.lazy = TRUE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    fig.height = 10,
+    fig.retina = 2,
+    fig.width = 10,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = TRUE,
+    # formatR required for tidy code
+    tidy = TRUE,
+    warning = FALSE)
+
+theme_set(
+    theme_light(base_size = 14))
+theme_update(
+    legend.justification = "center",
+    legend.position = "bottom")
+download.file("https://github.com/hbc/bcbioRNASeq/raw/master/inst/rmarkdown/shared/bibliography.bib", "bibliography.bib")
+```
+
+```{r libraries}
+library(DEGreport)
+library(DESeq2)
+library(tximport)
+library(janitor)
+library(readr)
+```
+
+```{r qc-setup, results='hide'}
+project_summary = params$project_summary
+design = params$design
+# tx2genes_file = file.path(project_summary, "tx2genes.csv")
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442",
+"#0072B2", "#D55E00", "#CC79A7")
+summarydata = read_csv(params$summarydata_fn) %>% 
+    as.data.frame()
+summarydata = summarydata[,colSums(is.na(summarydata)) < nrow(summarydata)]
+# handle newer bcbio-nextgen runs that use description as the key
+rownames(summarydata) = summarydata[[params$sample_name_col]]
+#summarydata$Name = rownames(summarydata)
+
+summarydata = summarydata[order(rownames(summarydata)),]
+
+sample_dirs = file.path(project_summary, rownames(summarydata))
+salmon_files = file.path(sample_dirs, "salmon", "quant.sf")
+sailfish_files = file.path(sample_dirs, "sailfish", "quant.sf")
+new_sailfish = file.path(sample_dirs, "sailfish", "quant", "quant.sf")
+new_salmon = file.path(sample_dirs, "salmon", "quant", "quant.sf")
+if (file.exists(salmon_files[1])) {
+    sf_files = salmon_files
+}else if (file.exists(sailfish_files[1])) {
+    sf_files = sailfish_files
+}else if (file.exists(new_sailfish[1])) {
+    sf_files = new_sailfish
+}else if (file.exists(new_salmon[1])) {
+    sf_files = new_salmon
+}
+names(sf_files) = rownames(summarydata)
+txi.salmon = tximport(sf_files, type="salmon",
+                      txOut = TRUE,
+                      countsFromAbundance="lengthScaledTPM")
+counts = round(data.frame(txi.salmon$counts, check.names=FALSE))
+
+counts = counts[, order(colnames(counts)), drop=FALSE]
+
+metadata = summarydata[, colSums(is.na(summarydata)) < nrow(summarydata), drop=FALSE]
+```
+
+```{r sanitize-datatable}
+sanitize_datatable = function(df, ...) {
+ # remove dashes which cause wrapping
+ DT::datatable(df, ..., rownames=gsub("-", "_", rownames(df)),
+                   colnames=gsub("-", "_", colnames(df)))
+}
+```
+
+```{r set-random-seed}
+# set seed for reproducibility
+set.seed(1454944673)
+```
+
+## Sample metadata
+```{r summary-table, echo=FALSE, cache=FALSE}
+sanitize_datatable(metadata, style='bootstrap')
+```
+
+
+```{r deseq2-tximport-helper-functions}
+subset_tximport = function(txi, rows, columns) {
+    txi$counts = txi$counts[rows, columns]
+    txi$abundance = txi$abundance[rows, columns]
+    txi$length = txi$length[rows, columns]
+    return(txi)
+}
+```
+
+```{r deseq2-helper-functions}
+deseq2resids = function(dds) {
+  # calculate residuals for a deseq2 fit
+  fitted = t(t(assays(dds)[["mu"]]) / sizeFactors(dds))
+  return(counts(dds, normalized=TRUE) - fitted)
+}
+```
+
+```{r de-setup}
+library(vsn)
+```
+
+# Differential expression
+
+```{r deseq2-expression-analysis, results='asis'}
+txi.salmon = subset_tximport(txi.salmon, rownames(counts), colnames(counts))
+dds = DESeqDataSetFromTximport(txi.salmon, colData=metadata, design=design)
+dds = DESeq(dds)
+```
+
+## Effect of variance stabilization
+
+```{r deseq-diagnostics, results='asis'}
+rld <- rlog(dds)
+rlogMat <- assay(rld)
+```
+
+## Dispersion estimates
+
+```{r dispersion-estimate}
+plotDispEsts(dds)
+```
+
+
+```{r deseq2-handler}
+handle_deseq2 = function(dds, summarydata, column) {
+  all_combs = combn(levels(summarydata[,column]), 2, simplify=FALSE)
+  all_results = list()
+  contrast_strings = list()
+  for(comb in all_combs) {
+    contrast_string = paste(comb, collapse=" vs ")
+    contrast = c(column, comb)
+    res = results(dds, contrast=contrast, addMLE=TRUE)
+    res = res[order(res$padj),]
+    all_results = c(all_results, res)
+    contrast_strings = c(contrast_strings, contrast_string)
+  }
+  names(all_results) = contrast_strings
+  return(all_results)
+}
+```
+
+## MA-plots
+
+```{r nicer-ma-plot}
+plotMA = function(res, contrast_name=NULL) {
+  res = data.frame(res)
+  res = subset(res, !is.na(padj))
+  p = ggplot(res, aes(baseMean, log2FoldChange, color=padj < 0.05)) +
+    geom_point(size=0.8) +
+    scale_x_log10(
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    annotation_logticks(sides='b') +
+    xlab("mean expression across all samples") +
+    ylab(expression(log[2]*" fold change")) +
+    scale_color_manual(values=c("black", "red", "green")) +
+    guides(color=FALSE)
+  if(!is.null(contrast_name)) {
+    p = p +
+      ggtitle(paste("MA-plot for contrast ", contrast_name))
+  }
+  return(p)
+}
+```
+
+```{r DESeq-output, results='asis'}
+all_results = handle_deseq2(dds, summarydata, condition)
+len = length(all_results)
+nr = ceiling( len / 3 )
+nc = ceiling( len / nr )
+par(mfrow=c(nr,nc))
+for(i in seq(length(all_results))) {
+  res = all_results[[i]]
+  ymax = max(res$log2FoldChange, na.rm=TRUE)
+  ymin = min(res$log2FoldChange, na.rm=TRUE)
+  plotMA(all_results[[i]], names(all_results)[i])
+}
+```
+
+## Volcano-plots
+
+```{r DESeq-volcano}
+for(i in seq(length(all_results))) {
+  stats = as.data.frame(all_results[[i]][,c(2,6)])
+  p = volcano_density_plot(stats, title=names(all_results)[i], lfc.cutoff=1.5)
+  print(p)
+}
+```
+
+## DEGreport
+
+```{r get-groups}
+get_groups <- function(d, comp, condition)
+{
+  g <- unlist(strsplit(comp," "))
+  g1 <- d$Name[d[, (names(d)==condition)]==g[1]]
+  g2 <- d$Name[d[, (names(d)==condition)]==g[3]]
+  list(g1,g2)
+}
+```
+
+### Pvalues-vs-Mean
+
+Here we plot some information about how the p-values are correlated with the
+mean or the standard deviation.
+
+```{r DEGreport-M}
+plots = list()
+scale_factor = round(1/nr * 14)
+for(i in seq(length(all_results))) {
+  plots[[i]] = degMean(all_results[[i]]$pvalue, rlogMat) +
+  theme_bw(base_size = scale_factor) +
+  ggtitle(paste0("Pvalues-vs-Mean for ", names(all_results)[i]))
+}
+do.call(grid.arrange,plots)
+```
+
+### Pvalues-vs-Variation
+
+```{r DEGreport-V}
+plots = list()
+for(i in seq(length(all_results))) {
+  plots[[i]] = degVar(all_results[[i]]$pvalue, rlogMat) +
+  theme_bw(base_size = scale_factor) +
+  ggtitle(paste0("Pvalues-vs-Variation for ", names(all_results)[i]))
+}
+do.call(grid.arrange,plots)
+```
+
+### Mean-vs-Variation
+```{r DEGreport-MV}
+plots = list()
+for(i in seq(length(all_results))) {
+  g <- get_groups(summarydata, names(all_results)[i], condition)
+  if(length(g[[1]]) < 2 | length(g[[2]]) < 2) {
+     next
+   }
+   g = c(summarydata[g[[1]], condition], summarydata[g[[2]], condition])
+  plots[[i]] = degMV(g, all_results[[i]]$pvalue, counts(dds,normalized=TRUE)) +
+  theme_bw(base_size = scale_factor) +
+  ggtitle(paste0("Mean-vs-Variation for ", names(all_results)[i]))
+}
+if(length(plots) > 0) {
+    do.call(grid.arrange,plots)
+}
+```
+
+## Differentially expressed genes
+
+```{r DESeq-tables, cache=FALSE, echo=FALSE}
+for(i in seq(length(all_results))) {
+  cat(paste("Lowest adjusted p-value hits for", names(all_results)[i]))
+  out_df = as.data.frame(all_results[[i]])
+  out_df$id = rownames(out_df)
+  out_df = out_df[, c("id", colnames(out_df)[colnames(out_df) != "id"])]
+  write.table(out_df, file=paste(names(all_results)[i], ".tsv", sep=""),
+                         quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+  sig_genes = subset(out_df, padj < 0.05)
+  sanitize_datatable(sig_genes, style='bootstrap')
+  cat("\n")
+}
+```

@@ -1,0 +1,6 @@
+name: Legacy Differential Expression
+description: >
+  Template for differential gene expression analysis.
+  It supports multiple contrasts and include
+  gene expression profile detection with degPattern.
+create_dir: false

@@ -30,6 +30,8 @@ params:
 ```{r knitr-setup}
 # Set seed for reproducibility
 set.seed(1454944673)
+library(knitr)
+library(ggplot2)
 
 opts_chunk[["set"]](
     autodep = TRUE,
@@ -60,6 +62,7 @@ download.file("https://github.com/hbc/bcbioRNASeq/raw/master/inst/rmarkdown/shar
 library(DESeq2)
 library(bcbioRNASeq)
 library(DEGreport)
+library(pheatmap)
 
 # Load bcbioRNASeq object
 bcbName <- load(params$bcbFile)
@@ -149,11 +152,30 @@ lapply(names(comparisons), function(x){
 
 This plot shows only differentially expressed genes on a per-sample basis. We have scaled the data by row and used the `ward.D2` method for clustering [@WardJr:1963eu].
 
-```{r plot_deg_heatmap}
+```{r plot_heatmap}
 lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
-    plotDEGHeatmap(deg(comparisons[[x]]), counts = rld,
-                   annotationCol = colData(bcb)[,interestingGroups(bcb)])
+    s = significants(comparisons[[x]])
+    if (length(s) < 2){
+        cat("Less than two genes, no possible to plot")
+    }else{
+        pheatmap(counts(bcb_braf, "rlog")[s,],scale = "row",
+                           show_rownames = FALSE, clustering_method = "ward.D2",
+                           clustering_distance_cols = "correlation")
+    }
+    cat("\n\n")
+}) %>%  invisible()
+
+```
+
+## PCA
+
+```{r plot_pca}
+lapply(names(comparisons), function(x){
+    cat("### ", x, "\n")
+        degPCA(assay(rld)[significants(comparisons[[x]]),],
+           colData(bcb), condition = interestingGroups(bcb)[1]) %>% print
+
     cat("\n\n")
 }) %>%  invisible()
 ```
@@ -175,7 +197,8 @@ saveData(pattern, dir = dataDir)
 ```{r results_tables, results="asis"}
 resTbl = lapply(names(comparisons), function(x){
     degPlot(bcb, genes = significants(comparisons[[x]])[1:9],
-            xs = "stage", slot = "normalized", log2 = FALSE,
+            xs = interestingGroups(bcb)[1],
+            slot = "normalized", log2 = FALSE,
             ann = c("ensgene", "symbol"))
     res = deg(comparisons[[x]], tidy = "tibble") %>% 
         left_join(rowData(bcb) %>% as.data.frame, by = c("gene" = "ensgene")) %>% 
