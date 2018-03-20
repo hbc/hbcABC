@@ -113,7 +113,7 @@ Let's take a look at the number of genes we get with different false discovery r
 
 ```{r alpha_summary, results="asis"}
 lapply(names(comparisons), function(x){
-    cat("## ", x, "\n")
+    cat("### ", x, "\n")
     degSummary(comparisons[[x]], kable = TRUE) %>%  show
     cat("\n\n")
 }) %>%  invisible()
@@ -128,7 +128,7 @@ An MA plot compares transformed counts on `M` (log ratio) and `A` (mean average)
 
 ```{r plot_ma}
 lapply(names(comparisons), function(x){
-    cat("## ", x, "\n")
+    cat("### ", x, "\n")
     print(plotMA(comparisons[[x]]))
     cat("\n\n")
 }) %>%  invisible()
@@ -173,10 +173,15 @@ lapply(names(comparisons), function(x){
 ```{r plot_pca}
 lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
+    s = significants(comparisons[[x]])
+    if (length(s) < 2){
+        cat("Less than two genes, no possible to plot")
+    }else{
         degPCA(assay(rld)[significants(comparisons[[x]]),],
-           colData(bcb), condition = interestingGroups(bcb)[1]) %>% print
-
-    cat("\n\n")
+               colData(bcb), condition = interestingGroups(bcb)[1]) %>% print
+        
+        cat("\n\n")
+    }
 }) %>%  invisible()
 ```
 
@@ -187,7 +192,7 @@ lapply(names(comparisons), function(x){
 # In this case the first is used. `sig` should be a character vector with genes.
 sig = significants(comparisons[[1]], fc = lfc, padj = alpha)
 pattern = degPatterns(counts(bcb, "rlog")[sig,],
-                      colData(bcb), time = "stage", concensusCluster = FALSE)
+                      colData(bcb), time = interestingGroups(bcb)[1])
 rio::export(pattern[["df"]])
 saveData(pattern, dir = dataDir)
 ```
@@ -196,10 +201,13 @@ saveData(pattern, dir = dataDir)
 
 ```{r results_tables, results="asis"}
 resTbl = lapply(names(comparisons), function(x){
-    degPlot(bcb, genes = significants(comparisons[[x]])[1:9],
+    cat("### ", x, "\n")
+    p = degPlot(bcb, genes = significants(comparisons[[x]])[1:9],
             xs = interestingGroups(bcb)[1],
             slot = "normalized", log2 = FALSE,
             ann = c("ensgene", "symbol"))
+    print(p)
+    cat("\n\n")
     res = deg(comparisons[[x]], tidy = "tibble") %>% 
         left_join(rowData(bcb) %>% as.data.frame, by = c("gene" = "ensgene")) %>% 
         left_join(pattern[["df"]], by = c("gene" = "genes"))
