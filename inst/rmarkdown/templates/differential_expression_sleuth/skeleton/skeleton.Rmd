@@ -1,0 +1,169 @@
+---
+title: "Transcript differential expression"
+author: "`r getOption('author')`"
+date: "`r Sys.Date()`"
+bibliography: bibliography.bib
+html_document:
+    code_folding: hide
+    df_print: paged
+    highlight: pygments
+    number_sections: false
+    self_contained: true
+    theme: cosmo
+    toc: true
+    toc_float:
+        collapsed: true
+        smooth_scroll: false
+pdf_document:
+    number_sections: false
+    toc: true
+    toc_depth: 1
+params:
+    bcbFile: "data/bcb.rda"
+    design: !r formula(~knockdown)
+    alpha: 0.01
+    lfc: 0
+    outputDir: "."
+---
+
+```{r knitr-setup}
+# Set seed for reproducibility
+set.seed(1454944673)
+library(knitr)
+library(ggplot2)
+
+opts_chunk[["set"]](
+    autodep = TRUE,
+    bootstrap.show.code = FALSE,
+    cache = TRUE,
+    cache.lazy = TRUE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    fig.height = 10,
+    fig.retina = 2,
+    fig.width = 10,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = TRUE,
+    # formatR required for tidy code
+    tidy = TRUE,
+    warning = FALSE)
+
+theme_set(
+    theme_light(base_size = 14))
+theme_update(
+    legend.justification = "center",
+    legend.position = "bottom")
+download.file("https://github.com/hbc/bcbioRNASeq/raw/master/inst/rmarkdown/shared/bibliography.bib", "bibliography.bib")
+```
+
+```{r setup, message=FALSE}
+library(bcbioRNASeq)
+library(DEGreport)
+library(pheatmap)
+
+# Load bcbioRNASeq object
+bcbName <- load(params$bcbFile)
+bcb <- get(bcbName, inherits = FALSE)
+
+# Directory paths
+outputDir <- params$outputDir
+dataDir <- dirname(params$bcbFile)
+deDir <- file.path(outputDir, "results", "transcript_differential_expression")
+dir.create(deDir, showWarnings = FALSE, recursive = TRUE)
+```
+
+```{r make-sleuth-object}
+library(sleuth)
+sleuthify = function(bcb, design) {
+  sampledirs = metadata(bcb)$sampleDirs
+  caller = "salmon"
+  quantdirs = file.path(sampledirs, caller)
+  names(quantdirs) = Map(basename, sampledirs)
+  sampledata = metrics(bcb)
+  sampledata$sample = sampledata$sampleID
+  sampledata$path = quantdirs
+  return(sleuth_prep(sampledata, design))
+}
+sl = sleuthify(bcb, ~knockdown)
+```
+
+```{r fit-sleuth-models}
+sl = sleuth_fit(sl, ~knockdown, 'full')
+sl = sleuth_fit(sl, ~1, 'reduced')
+```
+
+```{r sleuth-lrt}
+sl = sleuth_lrt(sl, 'reduced', 'full')
+```
+
+```{r sleuth-wald}
+sl = sleuth_wt(sl, 'knockdownyes')
+```
+
+```{r wald-results}
+library(dplyr)
+kdtable = sleuth_results(sl, 'knockdownyes', 'wald', show_all = TRUE)
+```
+
+Out of `r nrow(kdtable)` transcripts we flag `r kdtable %>% filter(qval < 0.05) %>% nrow()` 
+differentially expressed, using a q-value cutoff of 0.05.
+
+
+```{r mark-reciprical-splicing}
+kdtable = kdtable %>%
+  left_join(metadata(bcb)$tx2gene, by=c("target_id"="enstxp")) %>%
+  na.omit() %>%
+  group_by(ensgene) %>%
+  mutate(reciprocal=(sum(b > 0 & qval < 0.05) > 0) &
+           sum(b < 0 & qval < 0.05) > 0 &
+           length(ensgene) > 1) %>%
+  as.data.frame()
+```
+
+There are `r sum(kdtable$reciprocal)` transcripts reciprocally spliced, meaning two transcripts
+in a given gene are significantly moving in opposite directions.
+
+
+```{r effect-size-cutoff}
+kdtable_effsize = kdtable %>%
+  group_by(ensgene) %>%
+  mutate(reciprocal=(sum(b > 1 & qval < 0.05) > 0) &
+           sum(b < -1 & qval < 0.05) > 0 &
+           length(ensgene) > 1) %>%
+  as.data.frame()
+```
+Since the replicates are very similar, it is helpful to filter by effect size as
+well. If we filter with an effect size of 1 (in sleuth terms a LFC of e, since
+everything is in natural log space) then we find 
+`r sum(kdtable_effsize$reciprocal)` transcripts reciprocally DE.
+
+Below is a MA plot for all transcripts with an `abs(beta) > 1` and `qval < 0.05`. You
+can see there is a set of odd looking transcripts with high ln fold change which look
+like an artifact. I haven't seen this before, we'd have to dig in a little bit to 
+uncover what is happening with those transcripts.
+
+```{r ma-plot-transcripts}
+library(ggpubr)
+plotMA = function(res, contrast_name=NULL) {
+  res = data.frame(res)
+  res = subset(res, !is.na(qval))
+  p = ggplot(res, aes(mean_obs, b, color=qval < 0.05 & abs(b) > 1)) +
+    geom_point(size=0.8, alpha=0.2) +
+    scale_x_log10(
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    annotation_logticks(sides='b') +
+    xlab("mean expression across all samples") +
+    ylab(expression(ln[]*" fold change")) +
+    scale_color_manual(values=c("black", "red", "green")) +
+    guides(color=FALSE) +
+    theme_pubr(base_size=8, base_family="Gill Sans MT")
+  if(!is.null(contrast_name)) {
+    p = p +
+      ggtitle(paste("MA-plot for  ", contrast_name))
+  }
+  return(p)
+}
+plotMA(kdtable)
+```

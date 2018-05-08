@@ -1,0 +1,4 @@
+name: Transcript differential Expression
+description: >
+  Template for differential transcript expression analysis.
+create_dir: false
