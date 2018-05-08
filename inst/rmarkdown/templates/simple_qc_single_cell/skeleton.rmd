@@ -1,0 +1,170 @@
+---
+title: "Quality Control"
+author: "`r getOption('author')`"
+date: "`r Sys.Date()`"
+bibliography: bibliography.bib
+params:
+    bcb_file: "data/bcb.rda"
+    min_genes: 600
+    min_umi: 500
+    max_genes: !r Inf
+    max_mito_ratio: 0.25
+    min_novelty: 0.85
+    min_cells_per_gene: 10
+    data_dir: !r file.path("data", Sys.Date())
+---
+
+```{r setup, cache=FALSE, message=FALSE}
+# Last modified 2018-05-04
+bcbioSingleCell::prepareSingleCellTemplate()
+source("_setup.R")
+library(cowplot)
+
+# Load bcbioSingleCell object
+bcb_name <- load(params$bcb_file)
+bcb <- get(bcb_name, inherits = FALSE)
+stopifnot(is(bcb, "bcbioSingleCell"))
+invisible(validObject(bcb))
+```
+
+```{r header, child="_header.Rmd"}
+```
+
+
+
+```{r sample_data}
+sampleData(bcb, return = "data.frame")
+```
+
+[bcbio][] run data was imported from **`r metadata(bcb)$uploadDir`**.
+
+
+
+# Quality control metrics
+
+```{r n_cells}
+metrics(bcb) %>% 
+  ggplot(aes(x=altName)) + geom_bar() + ggtitle("NCells")
+```
+
+
+## QC plots
+
+These are counts of how many reads are assigned to a given cellular barcode. It is normal for single cell RNA-seq data to contain a large number of low complexity barcodes. The bcbio pipeline filters out most of these barcodes, and here we have applied a threshold cutoff of a minimum of `r metadata(bcb)$cellularBarcodeCutoff` reads per cell. The unfiltered read count distributions are shown here.
+
+Now let's assess the distribution of unique molecular identifier (UMI)-deconvoluted counts per cell. In general, the distributions should be relatively uniform per sample.
+
+Here by "detected", we mean genes with a non-zero count measurement per cell. Seeing gene detection in the range of `500`-`5000` is normal for most single-cell experiments.
+
+We evaluate overall mitochondrial gene expression as a biomarker of cellular stress during sample preparation.
+
+
+```{r qc-density, fig.height=7, fig.width=9}
+plot_grid(
+  metrics(bcb) %>% 
+    ggplot(aes(color=altName, x=nCount)) + geom_density() + scale_x_log10() + geom_vline(xintercept = 5000),
+  metrics(bcb) %>% 
+    ggplot(aes(color=altName, x=nUMI)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$min_umi),
+  metrics(bcb) %>% 
+    ggplot(aes(color=altName, x=nGene)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$min_genes),
+  metrics(bcb) %>% 
+    ggplot(aes(color=altName, x=mitoRatio)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$max_mito_ratio)
+)
+```
+
+
+
+## UMIs vs. genes detected vs. reads
+
+If we graph out the total number of UMI counts per cell vs. the genes detected per cell, we can assess whether there is a large population of low quality cells with low counts and/or gene detection.
+
+```{r plot_umis_vs_genes, fig.height=5}
+plot_grid(
+  metrics(bcb) %>% 
+    ggplot(aes(x=nUMI, y=nCount, color=mitoRatio)) + geom_point() + scale_x_log10() + scale_y_log10() + geom_vline(xintercept = params$min_umi),
+  metrics(bcb) %>% 
+    ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + geom_point() + scale_x_log10() + scale_y_log10() + geom_vline(xintercept = params$min_umi)
+)
+```
+
+
+## Novelty
+
+Another way to QC the data is to look for less novelty, that is cells that have less genes detected per count than other cells. We can see the samples where we sequenced each cell less have a higher overall novelty, that is because we have not started saturated the sequencing for any given gene for these samples. Outlier cells in these samples might be cells that we have a less complex RNA species than other cells. Sometimes we can detect contamination with low complexity cell types like red blood cells via this metric.
+
+```{r plot_novelty}
+plotNovelty(
+    object = bcb,
+    geom = "ecdf",
+    min = min(params$min_novelty), interestingGroups = "alt_name"
+)
+```
+
+
+
+```{r barcode_ranks, eval = FALSE, echo = FALSE}
+
+# Now let's rank cellular barcodes based on their UMI count per cell. Note that the scale here is log10. Refer #to the `DropletUtils::barcodeRanks()` documentation or the [DropletUtils #vignette](https://www.bioconductor.org/packages/3.7/bioc/vignettes/DropletUtils/inst/doc/DropletUtils.html) #for more information (see "Computing barcode ranks" section).
+# 
+# The knee and inflection points on the curve here help distinguish the UMI threshold between empty droplets #with little RNA and cell-containing droplets with much more RNA. The knee point is more sensitive to noise, #and we generally recommend starting with the inflection point for filtering because it is more conservative. 
+
+plotBarcodeRanks(bcb)
+```
+
+
+```{r filter_umi, eval = FALSE, echo = FALSE}
+ranks <- barcodeRanksPerSample(bcb)
+minUMIs <- vapply(
+    X = ranks,
+    FUN = function(x) {
+        as.integer(x[["inflection"]])
+    },
+    FUN.VALUE = integer(1L)
+)
+print(minUMIs)
+bcb <- filterCells(bcb, minUMIs = minUMIs)
+```
+
+
+# Filter cells
+
+```{r filter_cells}
+bcb_filtered <- filterCells(
+    object = bcb,
+    minUMIs = params$min_umi,
+    minGenes = params$min_genes,
+    maxGenes = params$max_genes,
+    maxMitoRatio = params$max_mito_ratio,
+    minNovelty = params$min_novelty,
+    minCellsPerGene = params$min_cells_per_gene
+)
+assignAndSaveData(
+    name = paste(bcb_name, "filtered", sep = "_"),
+    object = bcb_filtered,
+    dir = params$data_dir
+)
+```
+
+```{r ncell-filtered}
+metrics(bcb_filtered) %>% 
+  ggplot(aes(x=altName)) + geom_bar() + ggtitle("NCells")
+
+```
+
+
+```{r qc-filtered, fig.height=7, fig.width=9}
+plot_grid(
+  metrics(bcb_filtered) %>% 
+    ggplot(aes(color=altName, x=nCount)) + geom_density() + scale_x_log10(),
+  metrics(bcb_filtered) %>% 
+    ggplot(aes(color=altName, x=nUMI)) + geom_density() + scale_x_log10(),
+  metrics(bcb_filtered) %>% 
+    ggplot(aes(color=altName, x=nGene)) + geom_density() + scale_x_log10(),
+  metrics(bcb_filtered) %>% 
+    ggplot(aes(color=altName, x=mitoRatio)) + geom_density() + scale_x_log10()
+)
+```
+
+
+```{r footer, child="_footer.Rmd"}
+```
