@@ -42,6 +42,8 @@ sampleData(bcb, return = "data.frame")
 
 # Quality control metrics
 
+## Cells count
+
 ```{r n_cells}
 metrics(bcb) %>% 
   ggplot(aes(x=altName)) + geom_bar() + ggtitle("NCells")
@@ -50,13 +52,15 @@ metrics(bcb) %>%
 
 ## QC plots
 
-These are counts of how many reads are assigned to a given cellular barcode. It is normal for single cell RNA-seq data to contain a large number of low complexity barcodes. The bcbio pipeline filters out most of these barcodes, and here we have applied a threshold cutoff of a minimum of `r metadata(bcb)$cellularBarcodeCutoff` reads per cell. The unfiltered read count distributions are shown here.
+These four plots show:
 
-Now let's assess the distribution of unique molecular identifier (UMI)-deconvoluted counts per cell. In general, the distributions should be relatively uniform per sample.
+* counts of how many reads are assigned to a given cellular barcode. It is normal for single cell RNA-seq data to contain a large number of low complexity barcodes. The bcbio pipeline filters out most of these barcodes, and here we have applied a threshold cutoff of a minimum of `r metadata(bcb)$cellularBarcodeCutoff` reads per cell. The unfiltered read count distributions are shown here.
 
-Here by "detected", we mean genes with a non-zero count measurement per cell. Seeing gene detection in the range of `500`-`5000` is normal for most single-cell experiments.
+* unique molecular identifier (UMI)-deconvoluted counts per cell. In general, the distributions should be relatively uniform per sample.
 
-We evaluate overall mitochondrial gene expression as a biomarker of cellular stress during sample preparation.
+* genes with a non-zero count measurement per cell. Seeing gene detection in the range of `500`-`5000` is normal for most single-cell experiments.
+
+* mitochondrial gene expression as a biomarker of cellular stress during sample preparation.
 
 
 ```{r qc-density, fig.height=7, fig.width=9}
@@ -145,11 +149,17 @@ assignAndSaveData(
 )
 ```
 
+# Quality control metrics after filtering
+
+## Cells count
+
 ```{r ncell-filtered}
 metrics(bcb_filtered) %>% 
   ggplot(aes(x=altName)) + geom_bar() + ggtitle("NCells")
 
 ```
+
+## QC plots
 
 
 ```{r qc-filtered, fig.height=7, fig.width=9}

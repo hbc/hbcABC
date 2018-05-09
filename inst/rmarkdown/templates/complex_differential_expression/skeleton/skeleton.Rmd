@@ -240,10 +240,15 @@ The results are saved as gzip-compressed comma separated values (CSV). Gzip comp
 
 ## Count matrices
 
+Tables are under `r file.path(countsDir)` folder:
+
 - [`normalizedCounts.csv.gz`](`r file.path(countsDir, "normalizedCounts.csv.gz")`): Use to evaluate individual genes and/or generate plots. These counts are normalized for the variation in sequencing depth across samples.
 - [`tpm.csv.gz`](`r file.path(countsDir, "tpm.csv.gz")`): Transcripts per million, scaled by length and also suitable for plotting.
 - [`rawCounts.csv.gz`](`r file.path(countsDir, "rawCounts.csv.gz")`): Only use to perform a new differential expression analysis. These counts will vary across samples due to differences in sequencing depth, and have not been normalized. Do not use this file for plotting genes.
 
+## Differential expression tables
+
+Tables are under `r file.path(deDir)` folder:
 
 DEG tables are sorted by BH-adjusted P value, and contain the following columns:
 
