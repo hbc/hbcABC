@@ -14,7 +14,7 @@ output:
         toc: true
         toc_float:
             collapsed: true
-           smooth_scroll: false
+            smooth_scroll: false
 params:
     data_dir: "data"
     output_dir: "."

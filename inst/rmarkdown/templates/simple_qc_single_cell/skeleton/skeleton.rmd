@@ -13,7 +13,7 @@ output:
         toc: true
         toc_float:
             collapsed: true
-           smooth_scroll: false
+            smooth_scroll: false
 params:
     bcb_file: "data/bcb.rda"
     min_genes: 600
