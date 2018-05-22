@@ -3,7 +3,7 @@ library(tidyverse)
 data_dir = "data"
 load(file.path(data_dir, "cycle.rda"))
 
-readRDS(file.path(data_dir, "seurat.rds"))
+readRDS(file.path(data_dir, "seurat_raw.rds"))
 seurat <- seurat %>%  NormalizeData(
   normalization.method = "LogNormalize",
   scale.factor = 10000)

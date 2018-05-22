@@ -1,23 +1,34 @@
 ---
-title: "Seurat Clustering"
+title: "Single Cell Seurat Clustering"
 author: "`r getOption('author')`"
 date: "`r Sys.Date()`"
 bibliography: bibliography.bib
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        number_sections: false
+        self_contained: true
+        theme: simplex
+        toc: true
+        toc_float:
+            collapsed: true
+           smooth_scroll: false
 params:
     data_dir: "data"
     output_dir: "."
     pc_compute: 15
-    seurat: "seurat.rda"
+    seurat: "seurat_pre_regress.rds"
     seurat_tsne: "seurat_tsne.rsd"
     rowdata: "rowData.rds"
 ---
 
-```{pre, echo = FALSE}
 bcbio_filtered.rda object needs to be processed before run this template:
 
-* convert bcbio to seurat:  `{r file.path(system.file("rmarkdown", package="hbcABC"), "Rscripts",  "from_bcb_to_seurat.R")}
+* convert bcbio to seurat:  `{r file.path(system.file("rmarkdown", package="hbcABC"), "Rscripts",  "from_bcb_to_seurat.R")} or
+ from `simple_qc_single_cell` last chunk code.
 * clustering with seurat:  `{r file.path(system.file("rmarkdown", package="hbcABC"), "Rscripts",  "seurat_memory_cpu_intensive_analysis.R")}
-```
 
 
 ```{r render-opts, results='hide'}
@@ -335,8 +346,28 @@ lapply(custom_genes$geneName, function(g){
 
 
 # Session
+
 ```{r footer, results='markup'}
 sessionInfo()
 ```
 
+[bcbio]: https://bcbio-nextgen.readthedocs.io
+[bcbioSingleCell]: http://bioinformatics.sph.harvard.edu/bcbioSingleCell
+[bcl2fastq]: https://support.illumina.com/downloads/bcl2fastq-conversion-software-v217.html
+[biomaRt]: https://bioconductor.org/packages/release/bioc/html/biomaRt.html
+[DESeq2]: https://doi.org/doi:10.18129/B9.bioc.DESeq2
+[edgeR]: https://doi.org/doi:10.18129/B9.bioc.edgeR
+[Ensembl]: http://useast.ensembl.org
+[inDrop]: http://1cell-bio.com
+[Matrix]: https://cran.r-project.org/web/packages/Matrix/index.html
+[Orchestra]: https://wiki.med.harvard.edu/Orchestra
+[R]: https://www.r-project.org
+[rapmap]: https://github.com/COMBINE-lab/RapMap
+[scater]: https://doi.org/doi:10.18129/B9.bioc.scater
+[scran]: https://doi.org/doi:10.18129/B9.bioc.scran
+[scRNA-seq]: http://bcbio-nextgen.readthedocs.io/en/latest/contents/configuration.html#single-cell-rna-sequencing
+[Seurat]: http://satijalab.org/seurat
+[umis]: https://github.com/vals/umis
+[zinbwave]: https://doi.org/doi:10.18129/B9.bioc.zinbwave
+[zingeR]: https://github.com/statOmics/zingeR
 

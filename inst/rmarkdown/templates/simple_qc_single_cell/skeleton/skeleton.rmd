@@ -1,8 +1,19 @@
 ---
-title: "Quality Control"
+title: "Single Cell Quality Control"
 author: "`r getOption('author')`"
 date: "`r Sys.Date()`"
-bibliography: bibliography.bib
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        number_sections: false
+        self_contained: true
+        theme: simplex
+        toc: true
+        toc_float:
+            collapsed: true
+           smooth_scroll: false
 params:
     bcb_file: "data/bcb.rda"
     min_genes: 600
@@ -11,7 +22,7 @@ params:
     max_mito_ratio: 0.25
     min_novelty: 0.85
     min_cells_per_gene: 10
-    data_dir: !r file.path("data", Sys.Date())
+    data_dir: "data"
 ---
 
 ```{r setup, cache=FALSE, message=FALSE}
@@ -27,7 +38,7 @@ stopifnot(is(bcb, "bcbioSingleCell"))
 invisible(validObject(bcb))
 ```
 
-```{r header, child="_header.Rmd"}
+```{r header, child=file.exists("_header.Rmd")}
 ```
 
 
@@ -175,6 +186,28 @@ plot_grid(
 )
 ```
 
+```{r save-object-to-seurat, eval = FALSE, echo = FALSE}
+## Run in local computer
+specie = "mus musculus"
+library(bcbioSingleCell)
+# if species is not supported, find for s_genes and g2m_genes and save with
+# the same variable names into cycle.rda
+cell_cycle_markers <- bcbioSingleCell::cellCycleMarkers[[camel(specie)]]
+s_genes <- cell_cycle_markers %>%
+    filter(phase == "S") %>%
+    pull("geneID")
+g2m_genes <- cell_cycle_markers %>%
+    filter(phase == "G2/M") %>%
+    pull("geneID")
+save(g2m_genes, s_genes, file = file.path(params$data_dir,"cycle.rda"))
 
-```{r footer, child="_footer.Rmd"}
+seurat <- CreateSeuratObject(
+  raw.data = counts(bcb_filtered), meta.data = metrics(bcb_filtered))
+saveRDS(seurat, file = file.path(params$data_dir,"seurat_raw.rds"))
+
+saveRDS(rowData(bcb_filtered), file = file.path(data_dir,"rowData.rds"))
+```
+
+
+```{r footer, child=file.exists("_footer.Rmd")}
 ```

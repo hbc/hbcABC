@@ -1,4 +1,4 @@
-name: Simple QC Single Cell RNA-seq
+name: Single Cell Seurat Clustering Analysis
 description: >
   Template for scRNAseq to perform
   seurat clustering with pre-computed data.
