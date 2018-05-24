@@ -16,7 +16,7 @@ output:
             smooth_scroll: false
 params:
     bcb_file: "data/bcb.rda"
-    min_genes: 600
+    min_genes: 300
     min_umi: 500
     max_genes: !r Inf
     max_mito_ratio: 0.25
@@ -24,7 +24,6 @@ params:
     min_cells_per_gene: 10
     data_dir: "data"
 ---
-
 ```{r setup, cache=FALSE, message=FALSE}
 # Last modified 2018-05-04
 bcbioSingleCell::prepareSingleCellTemplate()
@@ -57,7 +56,7 @@ sampleData(bcb, return = "data.frame")
 
 ```{r n_cells}
 metrics(bcb) %>% 
-  ggplot(aes(x=altName)) + geom_bar() + ggtitle("NCells")
+  ggplot(aes(x=sampleName)) + geom_bar() + ggtitle("NCells")
 ```
 
 
@@ -77,13 +76,13 @@ These four plots show:
 ```{r qc-density, fig.height=7, fig.width=9}
 plot_grid(
   metrics(bcb) %>% 
-    ggplot(aes(color=altName, x=nCount)) + geom_density() + scale_x_log10() + geom_vline(xintercept = 5000),
+    ggplot(aes(color=sampleName, x=nCount)) + geom_density() + scale_x_log10() + geom_vline(xintercept = 5000),
   metrics(bcb) %>% 
-    ggplot(aes(color=altName, x=nUMI)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$min_umi),
+    ggplot(aes(color=sampleName, x=nUMI)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$min_umi),
   metrics(bcb) %>% 
-    ggplot(aes(color=altName, x=nGene)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$min_genes),
+    ggplot(aes(color=sampleName, x=nGene)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$min_genes),
   metrics(bcb) %>% 
-    ggplot(aes(color=altName, x=mitoRatio)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$max_mito_ratio)
+    ggplot(aes(color=sampleName, x=mitoRatio)) + geom_density() + scale_x_log10() + geom_vline(xintercept = params$max_mito_ratio)
 )
 ```
 
@@ -111,7 +110,7 @@ Another way to QC the data is to look for less novelty, that is cells that have 
 plotNovelty(
     object = bcb,
     geom = "ecdf",
-    min = min(params$min_novelty), interestingGroups = "alt_name"
+    min = min(params$min_novelty)
 )
 ```
 
@@ -166,7 +165,7 @@ assignAndSaveData(
 
 ```{r ncell-filtered}
 metrics(bcb_filtered) %>% 
-  ggplot(aes(x=altName)) + geom_bar() + ggtitle("NCells")
+  ggplot(aes(x=sampleName)) + geom_bar() + ggtitle("NCells")
 
 ```
 
@@ -176,20 +175,19 @@ metrics(bcb_filtered) %>%
 ```{r qc-filtered, fig.height=7, fig.width=9}
 plot_grid(
   metrics(bcb_filtered) %>% 
-    ggplot(aes(color=altName, x=nCount)) + geom_density() + scale_x_log10(),
+    ggplot(aes(color=sampleName, x=nCount)) + geom_density() + scale_x_log10(),
   metrics(bcb_filtered) %>% 
-    ggplot(aes(color=altName, x=nUMI)) + geom_density() + scale_x_log10(),
+    ggplot(aes(color=sampleName, x=nUMI)) + geom_density() + scale_x_log10(),
   metrics(bcb_filtered) %>% 
-    ggplot(aes(color=altName, x=nGene)) + geom_density() + scale_x_log10(),
+    ggplot(aes(color=sampleName, x=nGene)) + geom_density() + scale_x_log10(),
   metrics(bcb_filtered) %>% 
-    ggplot(aes(color=altName, x=mitoRatio)) + geom_density() + scale_x_log10()
+    ggplot(aes(color=sampleName, x=mitoRatio)) + geom_density() + scale_x_log10()
 )
 ```
 
-```{r save-object-to-seurat, eval = FALSE, echo = FALSE}
+```{r save-object-to-seurat}
 ## Run in local computer
-specie = "mus musculus"
-library(bcbioSingleCell)
+specie = "homo sapiens"
 # if species is not supported, find for s_genes and g2m_genes and save with
 # the same variable names into cycle.rda
 cell_cycle_markers <- bcbioSingleCell::cellCycleMarkers[[camel(specie)]]
@@ -205,9 +203,8 @@ seurat <- CreateSeuratObject(
   raw.data = counts(bcb_filtered), meta.data = metrics(bcb_filtered))
 saveRDS(seurat, file = file.path(params$data_dir,"seurat_raw.rds"))
 
-saveRDS(rowData(bcb_filtered), file = file.path(data_dir,"rowData.rds"))
+saveRDS(rowData(bcb_filtered), file = file.path(params$data_dir,"rowData.rds"))
 ```
-
 
 ```{r footer, child=file.exists("_footer.Rmd")}
 ```

@@ -73,5 +73,6 @@ BugReports: https://github.com/hbc/hbcABC/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 6.0.1.9000

@@ -1,0 +1,68 @@
+---
+author: "Lorena Pantano"
+title: "SingleCell RNAseq templates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{pkgdown}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Single cell templates
+
+`simple_qc_single_cell` is a template to run a fast QC with ggplot code
+to modify the plots as needed.
+
+To create the template, use the Rstudio menu as for any other template or:
+
+```{r copy-qc}
+source = file.path(system.file("rmarkdown", package="isomiRs"),
+          "templates", "sinple_qc_single_cell",
+          "skeleton",
+          "skeleton.rmd")
+file.copy(source, "simple_qc_sc.rmd")
+```
+
+The next step is to run the normalization, scaling and clustering that are high
+demand in computation time and memory.
+
+There is one script that can be used to run all the main steps in the cluster and
+save the most important objects to be loaded in the Rmd for clustering visualization.
+
+To get the script for this step, do:
+
+```{r seurat-computation}
+source = file.path(system.file("rmarkdown", package="isomiRs"),
+          "Rscripts", "seurat_memory_cpu_intesive_analysis.R")
+file.copy(source, "clustering.r")
+```
+
+This script uses the object saved in `simple_qc_single_cell.rmd`:
+
+* seurat_raw.rds
+* cycle.rda
+
+There is an important parameter in the script, `pcs`. It is calculated
+automatically as Michael Steinbaugh with some modifications from Lorena Pantano.
+It is important to look at this figure to check whether the value makes sense or not.
+
+The idea behind this is to choose the value just at the elbow of the plot. It helps
+to give to clients the list of top genes for each PCs so they can help to define
+the cutoff based on prior information.
+
+
+This script will create the following objects:
+
+* seurat_pre_regress.rds
+* seurat_tsne.rds
+
+These objects will be used by `seurat_clustering_single_cell` to perform
+best practices as described by seurat tutorial.
+
+```{r seurat-clustering}
+source = file.path(system.file("rmarkdown", package="isomiRs"),
+          "templates", "seurat_clustering_single_cell",
+          "skeleton",
+          "skeleton.rmd")
+file.copy(source, "seurat_clustering.rmd")
+```

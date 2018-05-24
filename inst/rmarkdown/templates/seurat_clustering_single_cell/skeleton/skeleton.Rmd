@@ -182,21 +182,26 @@ PC selection — identifying the true dimensionality of a dataset — is an impo
 
 We're using a heuristic approach here, by calculating where the principal components start to elbow. The plots below show where we have defined the principal compoment cutoff used downstream for dimensionality reduction. This is calculated automatically as the larger value of:
 
-1. The point where the principal components only contribute 5% of standard deviation (bottom left).
-2. The point where the principal components cumulatively contribute 90% of the standard deviation (bottom right).
+1. The point where the principal components only contribute 5% of standard deviation (horizontal line).
+2. The point where the principal components cumulatively contribute 90% of the standard deviation (veritcal line).
+3. The last point where the decrease between pcX and pcX-1 is bigger than 0.1%. (change of color) 
 
-This methodology is also commonly used for PC covariate analysis on bulk RNA-seq samples.
+From this 3 metrics we used the larger value of point 1 and 2, and the smaller of this and point 3.
 
 ```{r pc_use, fig.width=5, fig.height=5}
 # Allow for user-defined PCs to use, otherwise calculate using a PC elbow plot
 pct = seurat@dr$pca@sdev / sum(seurat@dr$pca@sdev) * 100
 cum = cumsum(pct)
-co = which(cum > 90 & pct < 5)[1]
+co1 = which(cum > 90 & pct < 5)[1]
+co2 = sort(which((pct[1:length(pct)-1] - pct[2:length(pct)]) >0.1),
+           decreasing = T)[1] + 1
+co = min(co1, co2)
 data.frame(pct = pct, cumsum = cum, rank = 1:length(pct)) %>% 
     ggplot(aes(cumsum, pct, label = rank, color = rank>=co)) +
     geom_text() +
     geom_vline(xintercept = 90, color = "grey") +
     geom_hline(yintercept = min(pct[pct>5]), color = "grey")
+pc_use <- co
 ```
 
 We are using `r length(pc_use)` principal components for dimensionality reduction calculations.
@@ -263,7 +268,7 @@ plot_grid(
 ## Other variables {.tabset}
 
 ```{r dim_reduction_plots, results="asis", fig.width=10, fig.height=6}
-group_by = c("Phase", "altName", "condition")
+group_by = c("Phase") # Add whatever column in colData to color by other group
 
 class_tsne_data = FetchData(seurat, vars.all = c("ident", "tSNE_1", "tSNE_2", group_by))
 class_pca_data = FetchData(seurat, vars.all = c("ident", "PC1", "PC2", group_by))
@@ -319,7 +324,7 @@ lapply(paste0("PC", 1:params$pc_compute), function(pc){
 }) %>% plot_grid(plotlist = .)
 ```
 
-# Custom genes
+# Custom genes {.tabset}
 
 ```{r tsne-custom-genes, eval = FALSE, fig.width=9, fig.height=9}
 library(rio)
@@ -344,7 +349,15 @@ lapply(custom_genes$geneName, function(g){
 
 ```
 
-
+```{r expression-activity-genes, eval = FALSE}
+lapply(custom_genes$geneName, function(g){
+    cat("\n\n## ", g, "\n\n")
+    ggplot(gene_data, aes_string("condition", g)) +
+        geom_jitter(size = 0.5, alpha = 0.4) +
+        geom_violin() +
+        ggtitle(g) + facet_wrap(~ident)
+})
+```
 # Session
 
 ```{r footer, results='markup'}
