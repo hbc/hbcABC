@@ -17,14 +17,10 @@ that goes into acknowledgement.
 
 You can load the code with devtools, from the remote repository:
 
-```{r load-code, message=FALSE}
+```{r load-code, message=FALSE, results='asis'}
 devtools::source_url("https://github.com/hbc/hbcABC/raw/master/R/funding.R")
-funding_catalyst()
 ```
 
-Some of the `funding_*` functions need some arguments, like `author`, and `service`.
-
-You can look for documentation with `?funding_*`.
 
 ## installing hbcABC package
 
@@ -32,12 +28,22 @@ If you install the packate with devtools:
 
 ```{r install-code, message=FALSE}
 devtools::install_github("hbc/hbcABC")
+library(hbcABC)
 ```
+
+## Adding funding information
 
 Then you can access directly to the functions:
 
-```{r all-functions, results='markup', echo = FALSE, message=FALSE}
-library(hbcABC)
+```{r example, results='asis', message=FALSE}
+cat(funding_catalyst(), funding_general("LPantano", "RNASeq analysis"))
+```
+
+```{r all-functions}
 ls("package:hbcABC")[grepl("funding", ls("package:hbcABC"))]
 ```
+
+Some of the `funding_*` functions need some arguments, like `author`, and `service`.
+
+You can look for documentation with `?funding_*`.
 

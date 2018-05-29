@@ -13,8 +13,7 @@ funding_general = function(author, service){
 #' @rdname funding
 #' @export
 funding_catalyst = function(){
-    paste("The project described was conducted with the support of Harvard Catalyst | The Harvard Clinical and Translational Science Center (NIH award #UL1 RR 025758 and financial contributions from participating institutions). The content is solely the responsibility of the authors and does not
-necessarily represent the official views of the National Center for Research Resources or theNational Institutes of Health.\n")
+    paste("The project described was conducted with the support of Harvard Catalyst | The Harvard Clinical and Translational Science Center (NIH award #UL1 RR 025758 and financial contributions from participating institutions). The content is solely the responsibility of the authors and does not necessarily represent the official views of the National Center for Research Resources or theNational Institutes of Health.\n")
 }
 #' @rdname funding
 #' @export
