@@ -17,7 +17,7 @@ that goes into acknowledgement.
 
 You can load the code with devtools, from the remote repository:
 
-```{r load-code}
+```{r load-code, message=FALSE}
 devtools::source_url("https://github.com/hbc/hbcABC/raw/master/R/funding.R")
 funding_catalyst()
 ```
@@ -30,13 +30,14 @@ You can look for documentation with `?funding_*`.
 
 If you install the packate with devtools:
 
-```{r install-code}
+```{r install-code, message=FALSE}
 devtools::install_github("hbc/hbcABC")
 ```
 
 Then you can access directly to the functions:
 
-```{r all-functions, results='markup', echo = FALSE}
+```{r all-functions, results='markup', echo = FALSE, message=FALSE}
+library(hbcABC)
 ls("package:hbcABC")[grepl("funding", ls("package:hbcABC"))]
 ```
 

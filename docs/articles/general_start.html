@@ -5,11 +5,11 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SingleCell RNAseq templates • hbcABC</title>
+<title>General templates • hbcABC</title>
 <!-- jquery --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Font Awesome icons --><link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script><script src="../pkgdown.js"></script><meta property="og:title" content="SingleCell RNAseq templates">
+<script src="../jquery.sticky-kit.min.js"></script><script src="../pkgdown.js"></script><meta property="og:title" content="General templates">
 <meta property="og:description" content="">
 <meta name="twitter:card" content="summary">
 <!-- mathjax --><script src="https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!--[if lt IE 9]>
@@ -72,54 +72,40 @@
       </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1>SingleCell RNAseq templates</h1>
+      <h1>General templates</h1>
                         <h4 class="author">Lorena Pantano</h4>
             
       
       
-      <div class="hidden name"><code>qc-tutorial.rmd</code></div>
+      <div class="hidden name"><code>general_start.rmd</code></div>
 
     </div>
 
     
     
-<div id="single-cell-templates" class="section level1">
+<div id="adding-funding-to-template" class="section level1">
 <h1 class="hasAnchor">
-<a href="#single-cell-templates" class="anchor"></a>Single cell templates</h1>
-<p><code>simple_qc_single_cell</code> is a template to run a fast QC with ggplot code to modify the plots as needed.</p>
-<p>To create the template, use the Rstudio menu as for any other template or:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">source =<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">system.file</span>(<span class="st">"rmarkdown"</span>, <span class="dt">package=</span><span class="st">"isomiRs"</span>),
-          <span class="st">"templates"</span>, <span class="st">"sinple_qc_single_cell"</span>,
-          <span class="st">"skeleton"</span>,
-          <span class="st">"skeleton.rmd"</span>)
-<span class="kw">file.copy</span>(source, <span class="st">"simple_qc_sc.rmd"</span>)</code></pre></div>
-<pre><code>## [1] FALSE</code></pre>
-<p>The next step is to run the normalization, scaling and clustering that are high demand in computation time and memory.</p>
-<p>There is one script that can be used to run all the main steps in the cluster and save the most important objects to be loaded in the Rmd for clustering visualization.</p>
-<p>To get the script for this step, do:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">source =<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">system.file</span>(<span class="st">"rmarkdown"</span>, <span class="dt">package=</span><span class="st">"isomiRs"</span>),
-          <span class="st">"Rscripts"</span>, <span class="st">"seurat_memory_cpu_intesive_analysis.R"</span>)
-<span class="kw">file.copy</span>(source, <span class="st">"clustering.r"</span>)</code></pre></div>
-<pre><code>## [1] FALSE</code></pre>
-<p>This script uses the object saved in <code>simple_qc_single_cell.rmd</code>:</p>
-<ul>
-<li>seurat_raw.rds</li>
-<li>cycle.rda</li>
-</ul>
-<p>There is an important parameter in the script, <code>pcs</code>. It is calculated automatically as Michael Steinbaugh with some modifications from Lorena Pantano. It is important to look at this figure to check whether the value makes sense or not.</p>
-<p>The idea behind this is to choose the value just at the elbow of the plot. It helps to give to clients the list of top genes for each PCs so they can help to define the cutoff based on prior information.</p>
-<p>This script will create the following objects:</p>
-<ul>
-<li>seurat_pre_regress.rds</li>
-<li>seurat_tsne.rds</li>
-</ul>
-<p>These objects will be used by <code>seurat_clustering_single_cell</code> to perform best practices as described by seurat tutorial.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">source =<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">system.file</span>(<span class="st">"rmarkdown"</span>, <span class="dt">package=</span><span class="st">"isomiRs"</span>),
-          <span class="st">"templates"</span>, <span class="st">"seurat_clustering_single_cell"</span>,
-          <span class="st">"skeleton"</span>,
-          <span class="st">"skeleton.rmd"</span>)
-<span class="kw">file.copy</span>(source, <span class="st">"seurat_clustering.rmd"</span>)</code></pre></div>
-<pre><code>## [1] FALSE</code></pre>
+<a href="#adding-funding-to-template" class="anchor"></a>Adding funding to template</h1>
+<p>There are two options to add into the templates the funding text that goes into acknowledgement.</p>
+<div id="sourcing-from-github" class="section level2">
+<h2 class="hasAnchor">
+<a href="#sourcing-from-github" class="anchor"></a>sourcing from github</h2>
+<p>You can load the code with devtools, from the remote repository:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/devtools/topics/source_url">source_url</a></span>(<span class="st">"https://github.com/hbc/hbcABC/raw/master/R/funding.R"</span>)
+<span class="kw"><a href="../reference/funding.html">funding_catalyst</a></span>()</code></pre></div>
+<pre><code>## [1] "The project described was conducted with the support of Harvard Catalyst | The Harvard Clinical and Translational Science Center (NIH award #UL1 RR 025758 and financial contributions from participating institutions). The content is solely the responsibility of the authors and does not\nnecessarily represent the official views of the National Center for Research Resources or theNational Institutes of Health."</code></pre>
+<p>Some of the <code>funding_*</code> functions need some arguments, like <code>author</code>, and <code>service</code>.</p>
+<p>You can look for documentation with <code>?funding_*</code>.</p>
+</div>
+<div id="installing-hbcabc-package" class="section level2">
+<h2 class="hasAnchor">
+<a href="#installing-hbcabc-package" class="anchor"></a>installing hbcABC package</h2>
+<p>If you install the packate with devtools:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/devtools/topics/install_github">install_github</a></span>(<span class="st">"hbc/hbcABC"</span>)</code></pre></div>
+<p>Then you can access directly to the functions:</p>
+<pre><code>## [1] "funding_catalyst" "funding_cfar"     "funding_general" 
+## [4] "funding_hsci"     "funding_niehs"    "funding_tnt"</code></pre>
+</div>
 </div>
   </div>
 
@@ -128,7 +114,12 @@
       <h2 class="hasAnchor">
 <a href="#tocnav" class="anchor"></a>Contents</h2>
       <ul class="nav nav-pills nav-stacked">
-<li><a href="#single-cell-templates">Single cell templates</a></li>
+<li>
+<a href="#adding-funding-to-template">Adding funding to template</a><ul class="nav nav-pills nav-stacked">
+<li><a href="#sourcing-from-github">sourcing from github</a></li>
+      <li><a href="#installing-hbcabc-package">installing hbcABC package</a></li>
+      </ul>
+</li>
       </ul>
 </div>
       </div>

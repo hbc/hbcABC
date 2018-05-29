@@ -9,6 +9,9 @@ for specific analysis like chipseq, small-rna, complex rnaseq ... etc
 Probably all of them will need some work in some chunks, so don't 
 press knitr button directly without testing the sections.
 
+## General tips:
+
+Please go to [general_start](articles/general_start.html) to get regular tips for all templates.
 
 ## Templates
 
