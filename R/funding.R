@@ -5,7 +5,7 @@
 #' @param service Name of the analysis done by the core.
 #' @export
 #' @examples
-#' funding_general("Lorena Pantnao", "RNASeq...")
+#' funding_general("Lorena Pantano", "RNASeq...")
 #' funding_catalyst()
 funding_general = function(author, service){
     paste("The authors would like to thank", author , "of the Harvard Chan Bioinformatics Core, Harvard T.H. Chan School of Public Health, Boston, MA for assistance with", service,".\n")
