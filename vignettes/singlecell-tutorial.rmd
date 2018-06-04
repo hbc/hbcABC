@@ -1,0 +1,132 @@
+---
+author: "Lorena Pantano"
+title: "SingleCell RNAseq templates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{pkgdown}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Single cell templates
+
+Please, contribute with your improvements. I am sure you have something to add.
+
+```{r echo = FALSE}
+root = "https://github.com/hbc/hbcABC/tree/master/inst/rmarkdown/Rscripts/singlecell"
+# root = "../../inst/rmarkdown/Rscripts/singlecell"
+```
+
+
+## QC
+
+`simple_qc_single_cell` is a template to run a fast QC with ggplot code
+to modify the plots as needed.
+
+To create the template, use the Rstudio menu as for any other template or:
+
+```{r copy-qc}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "templates", "sinple_qc_single_cell",
+          "skeleton",
+          "skeleton.rmd")
+file.copy(source, "simple_qc_sc.rmd")
+```
+
+The next step is to run the normalization, scaling and clustering that are high
+demand in computation time and memory.
+
+## Clustering with Seurat
+
+There is one script that can be used to run all the main steps in the cluster and
+save the most important objects to be loaded in the Rmd for clustering visualization.
+
+To get the [script](`r file.path(root, "clustering_seurat.R")`) for this step, do:
+
+```{r seurat-computation}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "Rscripts", 
+          "singlecell",
+          "clustering_seurat.R")
+file.copy(source, "clustering.r")
+```
+
+This script uses the object saved in `simple_qc_single_cell.rmd`:
+
+* seurat_raw.rds
+* cycle.rda
+
+There is an important parameter in the script, `pcs`. It is calculated
+automatically as Michael Steinbaugh with some modifications from Lorena Pantano.
+It is important to look at this figure to check whether the value makes sense or not.
+
+The idea behind this is to choose the value just at the elbow of the plot. It helps
+to give to clients the list of top genes for each PCs so they can help to define
+the cutoff based on prior information.
+
+
+This script will create the following objects:
+
+* seurat_pre_regress.rds
+* seurat_tsne.rds
+
+These objects will be used by `seurat_clustering_single_cell` to perform
+best practices as described by seurat tutorial.
+
+```{r seurat-clustering}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "templates", "seurat_clustering_single_cell",
+          "skeleton",
+          "skeleton.rmd")
+file.copy(source, "seurat_clustering.rmd")
+```
+
+## Find Markers with Seurat
+
+When you are happy with your clusters you can jump into the markers analysis.
+Running `FindAllMarkers` function (with Wilcox) can lead to false positive but it should give an idea of the markers for each cluster. 
+
+One can use other methods, like differential expression type, comparing one clusters against all. Right now, if the project has big number of cells > 10000, other method will need high amount of memory and time and it is difficult to handle, so extra hours should be schedule for this.
+
+To use the template [script](`r file.path(root, "markers_seurat.R")`) for this analysis:
+
+```{r seurat-markers}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "Rscripts",
+          "singlecell",
+          "markers_seurat.R")
+
+file.copy(source, "markers_seurat.r")
+```
+
+## Subset of clusters
+
+Sometimes we are interested on running Seurat for a subset of cells. 
+
+This [script](`r file.path(root, "clustering_seurat_subset.R")`) help with that:
+
+```{r seurat-subset}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "Rscripts",
+          "singlecell",
+          "clustering_seurat_subset.R")
+
+file.copy(source, "subset_seurat.r")
+```
+
+## Differential expression among groups for each cluster
+
+In the case the project has different groups of cells, one can run differential 
+expression analysis for each cluster. For instance, imagine you have two groups: A and B, and you want to know the differences between them in each single cluster. One option is to use [zinbwave](https://bioconductor.org/packages/release/bioc/html/zinbwave.html) - [edgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html) combo to account for the zero-inflation distribution in single cell.
+
+This [script](`r file.path(root, "de_with_zinbwave.R")`) can help with that:
+
+```{r zinbwave-de}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "Rscripts",
+          "singlecell",
+          "de_with_zinbwave.R")
+
+file.copy(source, "de_with_zinbwave.r")
+```
+
