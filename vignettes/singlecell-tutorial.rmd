@@ -15,6 +15,7 @@ Please, contribute with your improvements. I am sure you have something to add.
 ```{r echo = FALSE}
 root = "https://github.com/hbc/hbcABC/tree/master/inst/rmarkdown/Rscripts/singlecell"
 # root = "../../inst/rmarkdown/Rscripts/singlecell"
+dir.create("reports")
 ```
 
 
@@ -30,7 +31,7 @@ source = file.path(system.file("rmarkdown", package="hbcABC"),
           "templates", "sinple_qc_single_cell",
           "skeleton",
           "skeleton.rmd")
-file.copy(source, "simple_qc_sc.rmd")
+file.copy(source, "reports/simple_qc_sc.rmd")
 ```
 
 The next step is to run the normalization, scaling and clustering that are high
@@ -78,7 +79,7 @@ source = file.path(system.file("rmarkdown", package="hbcABC"),
           "templates", "seurat_clustering_single_cell",
           "skeleton",
           "skeleton.rmd")
-file.copy(source, "seurat_clustering.rmd")
+file.copy(source, "reports/seurat_clustering.rmd")
 ```
 
 ## Find Markers with Seurat
@@ -128,5 +129,9 @@ source = file.path(system.file("rmarkdown", package="hbcABC"),
           "de_with_zinbwave.R")
 
 file.copy(source, "de_with_zinbwave.r")
+```
+
+```{r remove, echo = FALSE}
+system("rm -rf reports")
 ```
 
