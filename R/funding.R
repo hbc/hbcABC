@@ -23,8 +23,7 @@ funding_cfar = function(author){
 #' @rdname funding
 #' @export
 funding_hsci = function(author){
-    paste("Work by", author, "at the Harvard Chan
-Bioinformatics Core was funded by the \"HSCI Center for Stem Cell Bioinformatics\"\n.")
+    paste("Work by", author, "at the Harvard Chan Bioinformatics Core was funded by the \"HSCI Center for Stem Cell Bioinformatics\"\n.")
 }
 #' @rdname funding
 #' @export
