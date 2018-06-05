@@ -14,6 +14,10 @@ To run any of these commands, need to activate the bioconda IRFinder environment
 IRFinder -m BuildRefProcess -r reference_data/
 ```
 
+>**NOTE:** The files in the `reference_data` folder are sym links to the bcbio ref files and need to be named specifically `genome.fa` and `transcripts.gtf`:
+>`genome.fa -> /n/app/bcbio/biodata/genomes/Hsapiens/hg19/seq/hg19.fa`
+>`transcripts.gtf -> /n/app/bcbio/biodata/genomes/Hsapiens/hg19/rnaseq/ref-transcripts.gtf`
+
 2. Second script (.sh) runs IRFinder and STAR on input file
 
 ```bash
