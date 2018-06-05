@@ -65,4 +65,4 @@ To run any of these commands, need to activate the bioconda IRFinder environment
         > KD_ctrl-v-nrde2.tab
       ```
 
-5. Output KD_ctrl-v-nrde2.tab file can be read directly into R for filtering and results exploration.
+5. Output `KD_ctrl-v-nrde2.tab` file can be read directly into R for filtering and results exploration.
