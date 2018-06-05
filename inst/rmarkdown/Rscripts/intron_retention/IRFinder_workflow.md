@@ -67,6 +67,6 @@ To run any of these commands, need to activate the bioconda IRFinder environment
 
 5. Output `KD_ctrl-v-nrde2.tab` file can be read directly into R for filtering and results exploration.
 
-6. Rmarkdown workflow (included in report):
+6. Rmarkdown workflow (included in report): https://github.com/hbc/hbcABC/blob/master/inst/rmarkdown/Rscripts/intron_retention/IRFinder.md
 
 
