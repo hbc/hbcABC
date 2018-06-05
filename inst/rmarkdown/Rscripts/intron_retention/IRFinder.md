@@ -1,4 +1,4 @@
-## Methods
+## Methods for IRFinder
 
 The intron retention analysis was performed using IRFinder version 1.2.3 based on the gene annotations for the hg19 reference genome.
 

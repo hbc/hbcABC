@@ -1,3 +1,5 @@
+# single cell find markers with seurat
+
 library(Seurat)
 library(tidyverse)
 data_dir = "data"

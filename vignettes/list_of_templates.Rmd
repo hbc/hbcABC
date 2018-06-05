@@ -1,0 +1,67 @@
+---
+author: "Lorena Pantano"
+title: "List of templates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{pkgdown}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# R scripts at `rmarkdown/Rscripts`
+
+```{r, echo = FALSE, results='asis', message=FALSE}
+library(tidyverse)
+setwd(here::here())
+fns = list.files("inst/rmarkdown/Rscripts", recursive = TRUE)
+lapply(fns, function(fn){
+	desc = readr::read_lines(file.path("inst/rmarkdown/Rscripts", fn), n_max = 1)
+	if (!grepl("# ", desc)){
+	    desc = "Not given."
+	}
+	data.frame(fn = basename(fn),
+	           category = dirname(fn),
+	           description = gsub("#", "", desc),
+	           stringsAsFactors = FALSE)
+}) %>% bind_rows() %>% distinct() %>%  knitr::kable()
+
+```
+
+You can get any of this doing:
+
+```{r eval = FALSE}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "Rscripts",
+          category,
+          fn)
+
+file.copy(source, final_R)
+```
+
+# R markdown files `rmarkdown/templates`
+
+```{r, echo = FALSE, results='asis', warning=FALSE, message=FALSE}
+library(tidyverse)
+setwd(here::here())
+fns = list.files("inst/rmarkdown/templates", pattern = "yaml", recursive = TRUE)
+lapply(fns, function(fn){
+	yaml::read_yaml(file.path("inst/rmarkdown/templates", fn)) %>% 
+        as.data.frame() %>% 
+        select(name, description) %>% 
+        mutate(fn = dirname(fn))
+}) %>% bind_rows() %>% knitr::kable()
+```
+
+You can get any of this doing:
+
+```{r eval = FALSE}
+source = file.path(system.file("rmarkdown", package="hbcABC"),
+          "templates",
+          fn,
+          "skeleton",
+          "skeleton.Rmd")
+
+file.copy(source, final_Rmd)
+```
+

@@ -8,6 +8,21 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+This repository is for internal use, so any kind of 
+script or template will be helpful to others.
+They don't need to be a final product, so go ahead and add
+anything you did that we don't have automatized.
+
+# R scripts
+
+Scripts are being stored in `inst/rmarkdown/Rscripts`:
+
+* Create a folder that categorize the analysis if it is not there.
+* Create a R file that contains your code
+* If you add the first line with a description: `# this is for alternative splicing with IRFinder`, it will be used as a description of the script in the page where all templates/scripts are being listed.
+
+# Rmarkdown 
+
 How to add new templates to HBC repository in 30 lines.
 
 First you need to clone [hbcABC](https://github.com/hbc/hbcABC) repo to your computer.

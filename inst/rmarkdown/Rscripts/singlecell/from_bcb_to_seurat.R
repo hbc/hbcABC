@@ -1,3 +1,5 @@
+# convert bcbio object to seurat
+
 ## Run in local computer
 specie = "mus musculus"
 data_dir = "data"
