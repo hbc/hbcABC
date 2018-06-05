@@ -95,7 +95,7 @@ Similar to the criteria used in the [IRFinder paper](https://genomebiology.biome
 
 All results can be accessed using the links below the table. The top 20 most significant retained introns are displayed below:
 
-```{r filtering_results}
+```r
 # Only returning those introns represented in more than 10% of transcripts in A or B
 sig_irfinder_filtered <- sig_irfinder_ACtest[which(sig_irfinder_ACtest$A.IRratio > 0.1 | sig_irfinder_ACtest$B.IRratio > 0.1), ]
 
@@ -116,12 +116,12 @@ write.csv(sig_irfinder_filtered2, "results/significant_irfinder_ACtest_results_p
 
 The significantly retained introns were explored for several genes of interest. 
 
-```{r specific_genes}
+```r
 interesting_genes <- sig_irfinder_filtered2[sig_irfinder_filtered2$gene %in% c(), ]
 knitr::kable(interesting_genes)
 
 ```
 
-```{r sessioninfo}
+```r
 sessionInfo()
 ```
