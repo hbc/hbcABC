@@ -67,9 +67,8 @@ To run any of these commands, need to activate the bioconda IRFinder environment
 
 5. Output `KD_ctrl-v-nrde2.tab` file can be read directly into R for filtering and results exploration.
 
-6. Rmarkdown workflow:
+6. Rmarkdown workflow (included in report):
 
-```r
 ## Methods
 
 The intron retention analysis was performed using IRFinder version 1.2.3 based on the gene annotations for the hg19 reference genome.
@@ -123,7 +122,7 @@ sig_irfinder_ACtest <- irfinder_ACtest_merged[which(irfinder_ACtest_merged$padj 
 
 sig_irfinder_ACtest <- sig_irfinder_ACtest[order(sig_irfinder_ACtest$p.diff),]
 
-```
+
 
 ## Results
 
