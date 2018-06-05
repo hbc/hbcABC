@@ -34,23 +34,19 @@ irfinder_ACtest_merged <- merge(irfinder_AC_test, grch37_description, by.x="ense
 
 irfinder_ACtest_merged <- irfinder_ACtest_merged[, -5]
 
-# irfinder_ACtest_merged <- irfinder_ACtest_merged[order(irfinder_ACtest_merged$p.diff), ]
-# 
-# irfinder_ACtest_merged$rank <- 1:2172
-# 
-# irfinder_ACtest_merged$factor <- 2172 / irfinder_ACtest_merged$rank
-# 
-# irfinder_ACtest_merged$padj <- irfinder_ACtest_merged$p.diff * irfinder_ACtest_merged$factor
-
+# Need to adjust for multiple test correction
 irfinder_ACtest_merged$padj <- p.adjust(irfinder_ACtest_merged$p.diff, "BH")
 
+# Order by padj
 irfinder_ACtest_merged <- irfinder_ACtest_merged[order(irfinder_ACtest_merged$padj), ]
 
+# Write to file all results
 write.csv(irfinder_ACtest_merged, "results/slack_irfinder_ACtest_all_results_padj.csv")
+
+# Determine significant results with padj < 0.05
 sig_irfinder_ACtest <- irfinder_ACtest_merged[which(irfinder_ACtest_merged$padj < 0.05), ]
 
 sig_irfinder_ACtest <- sig_irfinder_ACtest[order(sig_irfinder_ACtest$p.diff),]
-
 
 
 ## Results
