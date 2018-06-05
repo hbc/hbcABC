@@ -1,0 +1,5 @@
+name: Simple QC Single Cell RNA-seq
+description: >
+  Template for RNAseq QC with simpler figures.
+  Good for very quick view of the data.
+create_dir: false

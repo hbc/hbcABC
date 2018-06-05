@@ -1,0 +1,40 @@
+---
+author: "Lorena Pantano"
+title: "How to create templates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{pkgdown}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+How to add new templates to HBC repository in 30 lines.
+
+First you need to clone [hbcABC](https://github.com/hbc/hbcABC) repo to your computer.
+
+After that, the easiest way to create templates is to follow this structure.
+
+Inside the folder `inst/rmarkdown/templates` create a folder with the name of the RMD template you want to add, for instance: `hello_word_rmd`.
+
+Then, create a YAML file named `template.yaml` with the following information:
+
+```
+name: Name of the template
+description: >
+  Description that will be shown in Rstudio.
+create_dir: false
+```
+ 
+Create another folder named: `skeleton` and inside this a RMD file named `skeleton.Rmd` containing the rmarkdown you want to add.
+
+At the end you'll should have this folders tree under `inst/rmarkdown`:
+
+```
+templates
+-- hello_world_rmd
+---- template.yaml
+---- skeleton
+------- skeleton.Rmd
+```
+
+To test it, install the package and go to the `File` -> `New File` -> `R Markdown` and click on templates. Your new template should be there.

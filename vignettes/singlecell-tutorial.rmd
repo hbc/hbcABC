@@ -133,5 +133,6 @@ file.copy(source, "de_with_zinbwave.r")
 
 ```{r remove, echo = FALSE}
 system("rm -rf reports")
+system("rm -rf *.r")
 ```
 

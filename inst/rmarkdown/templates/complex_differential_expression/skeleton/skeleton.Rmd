@@ -125,6 +125,10 @@ lapply(names(comparisons), function(x){
 ## Mean average (MA) {.tabset}
 
 An MA plot compares transformed counts on `M` (log ratio) and `A` (mean average) scales [@Yang:2002ty].
+Blue arrows represent a correction of the log2 Fold Change values due to variability. Normally this happens when the gene shows high variation and the
+log2FC is not accurate, here the model tries to estimate them. See this paper for more information:
+
+Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. https://doi.org/10.1186/s13059-014-0550-8
 
 ```{r plot_ma}
 lapply(names(comparisons), function(x){
@@ -159,7 +163,7 @@ lapply(names(comparisons), function(x){
     if (length(s) < 2){
         cat("Less than two genes, no possible to plot")
     }else{
-        pheatmap(counts(bcb_braf, "rlog")[s,],scale = "row",
+        pheatmap(counts(bcb, "vst")[s,],scale = "row",
                            show_rownames = FALSE, clustering_method = "ward.D2",
                            clustering_distance_cols = "correlation")
     }
@@ -168,7 +172,12 @@ lapply(names(comparisons), function(x){
 
 ```
 
-## PCA
+## PCA {.tabset}
+
+Principal component analysis is a technique to reduce the dimensionality of the data to allow visualization in two dimensions [PCA][]. It takes all the gene abundances for the samples and
+creates a series of principal components (PCs) to explain the
+variability in the data. We normally plot the first two PCs for
+simplicity.
 
 ```{r plot_pca}
 lapply(names(comparisons), function(x){
@@ -186,6 +195,10 @@ lapply(names(comparisons), function(x){
 ```
 
 ## Gene Expression Patterns
+
+In general, it is useful to cluster the significant genes together in similar patterns across samples. `degPatterns` uses standard expression correlation technique to generate a similarity matrix that can be clustered hierarchically and then split into groups of genes that follow similar expression patterns [degPtterns][].
+
+We defined significance as genes with abs(log2FC) >  `r cat(lfc)` and FDR < `r cat(alpha)`.
 
 ```{r patterns}
 # choose the significants genes. 
@@ -297,3 +310,5 @@ print(params)
 [salmon]: https://combine-lab.github.io/salmon
 [tximport]: https://bioconductor.org/packages/release/bioc/html/tximport.html
 [7-Zip]: http://www.7-zip.org
+[PCA]: https://en.wikipedia.org/wiki/Principal_component_analysis
+[degPattern]: https://lpantano.github.io/DEGpattern

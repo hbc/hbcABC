@@ -3,5 +3,6 @@ pkgdown: 1.0.0
 pkgdown_sha: ~
 articles:
   general_start: general_start.html
+  how_to_add_templates: how_to_add_templates.html
   singlecell-tutorial: singlecell-tutorial.html
 
