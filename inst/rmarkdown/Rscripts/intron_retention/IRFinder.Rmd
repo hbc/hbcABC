@@ -12,7 +12,7 @@ The intron retention analysis was performed using IRFinder version 1.2.3 based o
 
 For more detailed descriptions, see the [IRFinder wiki](https://github.com/williamritchie/IRFinder/wiki).
 
-```{r setup}
+```r
 library(tidyverse)
 library(annotables)
 
