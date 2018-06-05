@@ -27,7 +27,7 @@ To run any of these commands, need to activate the bioconda IRFinder environment
 
       module load star/2.5.4a
 
-      IRFinder -r /n/data1/cores/bcbio/PIs/frank_slack/slack_intron_retention/irfinder/reference_data \
+      IRFinder -r /path/to/irfinder/reference_data \
       -t 4 -d results \
       $1
       ```
@@ -37,16 +37,16 @@ To run any of these commands, need to activate the bioconda IRFinder environment
       ```bash
       #!/bin/bash
 
-      for fq in /n/data1/cores/bcbio/PIs/frank_slack/slack_intron_retention/data/*fastq
+      for fq in /path/to/*fastq
       do
 
-      sbatch -p medium -t 0-48:00 -n 4 --job-name irfinder --mem=128G -o %j.out -e %j.err --wrap="sh /n/data1/cores/bcbio/PIs/frank_slack/slack_intron_retention/irfinder/irfinder_input_file.sh $fq"
+      sbatch -p medium -t 0-48:00 -n 4 --job-name irfinder --mem=128G -o %j.out -e %j.err --wrap="sh /path/to/irfinder/irfinder_input_file.sh $fq"
       sleep 1 # wait 1 second between each job submission
 
       done
       ```
 
-4. Fourth script takes output (IRFinder-IR-dir.txt) and uses the replicates to determine differential expression using the Audic and Claverie test (# replicates < 4). analysisWithLowReplicates.pl script comes with the IRFinder github repo clone.
+4. Fourth script takes output (IRFinder-IR-dir.txt) and uses the replicates to determine differential expression using the Audic and Claverie test (# replicates < 4). analysisWithLowReplicates.pl script comes with the IRFinder github repo clone, so I cloned the repo at https://github.com/williamritchie/IRFinder/. Notes on the Audic and Claverie test can be found at: https://github.com/williamritchie/IRFinder/wiki/Small-Amounts-of-Replicates-via-Audic-and-Claverie-Test.
 
       ```bash
       #!/bin/bash
