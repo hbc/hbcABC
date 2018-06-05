@@ -47,7 +47,7 @@ write.csv(irfinder_ACtest_merged, "results/slack_irfinder_ACtest_all_results_pad
 sig_irfinder_ACtest <- irfinder_ACtest_merged[which(irfinder_ACtest_merged$padj < 0.05), ]
 
 sig_irfinder_ACtest <- sig_irfinder_ACtest[order(sig_irfinder_ACtest$p.diff),]
-
+```
 
 ## Results
 
@@ -110,9 +110,9 @@ knitr::kable(sig_irfinder_filtered2[1:20, ])
 write.csv(sig_irfinder_filtered2, "results/significant_irfinder_ACtest_results_padj.csv")
 ```
 
-[Download all results](./results/irfinder_ACtest_all_results_padj.csv)
+[Download all results]
 
-[Download significant results](./results/significant_irfinder_ACtest_results_padj.csv)
+[Download significant results]
 
 The significantly retained introns were explored for several genes of interest. 
 
