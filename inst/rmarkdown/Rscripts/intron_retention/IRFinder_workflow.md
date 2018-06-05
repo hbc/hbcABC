@@ -2,17 +2,17 @@ To run any of these commands, need to activate the bioconda IRFinder environment
 
 1. First script creates reference build required for IRFinder
 
-  ```bash
-  #SBATCH -t 24:00:00                    # Runtime in minutes
-  #SBATCH -n 4
-  #SBATCH -p medium                # Partition (queue) to submit to
-  #SBATCH --mem=128G        # 128 GB memory needed (memory PER CORE)
-  #SBATCH -o %j.out               # Standard out goes to this file
-  #SBATCH -e %j.err               # Standard err goes to this file
-  #SBATCH --mail-type=END         # Mail when the job ends 
+    ```bash
+    #SBATCH -t 24:00:00                    # Runtime in minutes
+    #SBATCH -n 4
+    #SBATCH -p medium                # Partition (queue) to submit to
+    #SBATCH --mem=128G        # 128 GB memory needed (memory PER CORE)
+    #SBATCH -o %j.out               # Standard out goes to this file
+    #SBATCH -e %j.err               # Standard err goes to this file
+    #SBATCH --mail-type=END         # Mail when the job ends 
 
-  IRFinder -m BuildRefProcess -r reference_data/
-  ```
+    IRFinder -m BuildRefProcess -r reference_data/
+    ```
 
   >**NOTE:** The files in the `reference_data` folder are sym links to the bcbio ref files and need to be named specifically `genome.fa` and `transcripts.gtf`:
   >
