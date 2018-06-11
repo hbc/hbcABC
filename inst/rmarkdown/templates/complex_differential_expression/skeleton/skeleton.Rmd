@@ -130,7 +130,7 @@ log2FC is not accurate, here the model tries to estimate them. See this paper fo
 
 Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550. https://doi.org/10.1186/s13059-014-0550-8
 
-```{r plot_ma}
+```{r plot_ma, results="asis"}
 lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
     print(plotMA(comparisons[[x]]))
@@ -143,7 +143,7 @@ lapply(names(comparisons), function(x){
 
 A volcano plot compares significance (BH-adjusted *P* value) against fold change (log2) [@Cui:2003kh; @Li:2014fv]. Genes in the green box with text labels have an adjusted *P* value are likely to be the top candidate genes of interest.
 
-```{r plot_volcano}
+```{r plot_volcano, results="asis"}
 lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
     print(degVolcano(comparisons[[x]]))
@@ -156,7 +156,7 @@ lapply(names(comparisons), function(x){
 
 This plot shows only differentially expressed genes on a per-sample basis. We have scaled the data by row and used the `ward.D2` method for clustering [@WardJr:1963eu].
 
-```{r plot_heatmap}
+```{r plot_heatmap, results="asis"}
 lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
     s = significants(comparisons[[x]])
@@ -179,7 +179,7 @@ creates a series of principal components (PCs) to explain the
 variability in the data. We normally plot the first two PCs for
 simplicity.
 
-```{r plot_pca}
+```{r plot_pca, results="asis"}
 lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
     s = significants(comparisons[[x]])
