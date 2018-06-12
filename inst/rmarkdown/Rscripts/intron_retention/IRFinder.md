@@ -17,7 +17,7 @@ library(tidyverse)
 library(annotables)
 
 # Small Amounts of Replicates via Audic and Claverie Test
-irfinder_AC_test <- read.table("~/bcbio/PIs/frank_slack/slack_intron_retention/irfinder/IRFinder/KD_ctrl-v-nrde2.tab", header = T)
+irfinder_AC_test <- read.table("/path/to/IRFinder/results.tab", header = T)
 
 parsed_rownames <- str_split(irfinder_AC_test$Intron.GeneName.GeneID, "/", simplify = TRUE)
 
@@ -41,7 +41,7 @@ irfinder_ACtest_merged$padj <- p.adjust(irfinder_ACtest_merged$p.diff, "BH")
 irfinder_ACtest_merged <- irfinder_ACtest_merged[order(irfinder_ACtest_merged$padj), ]
 
 # Write to file all results
-write.csv(irfinder_ACtest_merged, "results/slack_irfinder_ACtest_all_results_padj.csv")
+write.csv(irfinder_ACtest_merged, "results/irfinder_ACtest_all_results_padj.csv")
 
 # Determine significant results with padj < 0.05
 sig_irfinder_ACtest <- irfinder_ACtest_merged[which(irfinder_ACtest_merged$padj < 0.05), ]
