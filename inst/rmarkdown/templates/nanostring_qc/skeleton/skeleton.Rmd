@@ -1,0 +1,510 @@
+---
+title: "Nanostring Quality Control"
+date: "`r Sys.Date()`"
+params:
+    rcc_folder: ""
+    metadata_file: ""
+    rlf_file: ""
+    output_dir: "."
+    hk_min_counts: 200
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    highlight: zenburn
+    theme: flatly
+---
+
+```{r check-library-functions, echo=FALSE}
+check_install = function(packages) {
+   not_installed = setdiff(packages, rownames(installed.packages()))
+   if (length(not_installed) > 0) {
+      write(paste("The libraries", not_installed, "are not installed, aborting.",
+                   sep = " "), stdout())
+      stop()
+   }
+}
+```
+
+```{r load-libraries, echo=FALSE, message=FALSE, warning=FALSE}
+packages = c("NanoStringQCPro","ggplot2","pheatmap","dplyr","cowplot","scales",
+             "DESeq2","DEGreport","tidyverse", "knitr")
+check_install(packages)
+installed = lapply(packages, library, character.only = TRUE)
+```
+
+```{r prepare Functions}
+pca_loadings = function(object, ntop=700) {
+  rv <- matrixStats::rowVars(as.matrix(object))
+  select <- order(rv, decreasing = TRUE)[seq_len(min(ntop,
+      length(rv)))]
+  pca <- prcomp(t(as.matrix(object)[select, ]))
+  percentVar <- pca$sdev^2/sum(pca$sdev^2)
+  names(percentVar) = colnames(pca$x)
+  pca$percentVar = percentVar
+  return(pca)}
+
+# Colors for heatmaps: Generate same colors as ggplot
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+plotFOV = function(eset) {
+  pdat = pData(eset) %>%
+    tibble::rownames_to_column() 
+  pdat$pcounted = pdat$FovCounted/pdat$FovCount * 100
+  ggplot(pdat, aes(rowname, pcounted)) + geom_point() +
+      theme(axis.text.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            strip.text.x = element_text(size = 8)) +
+    scale_y_continuous(expand = c(0,0)) +
+    expand_limits(y = c(0,1.05 * max(pdat$pcounted))) +
+    ylab("percentage of FOV counted") + xlab("sample") +
+    geom_hline(yintercept = 75, color = "red")
+}
+
+# Binding density plot
+plotBD = function(eset) {
+  pdat = pData(eset) %>%
+    tibble::rownames_to_column() 
+  ggplot(pdat, aes(rowname, BindingDensity)) + geom_point() +
+      theme(axis.text.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            strip.text.x = element_text(size = 8)) +
+    scale_y_continuous(expand = c(0,0)) +
+    expand_limits(y = c(0,1.05 * max(pdat$BindingDensity))) +
+    ylab("Binding density") + xlab("sample") +
+    geom_hline(yintercept = 0.05, color = "red") +
+    geom_hline(yintercept = 2.25, color = "red")
+}
+
+
+
+is_positive = function(column) {
+  return(grepl("Pos", column))
+}
+is_negative = function(column) {
+  return(grepl("Neg", column))
+}
+is_spikein = function(column) {
+  return(grepl("Spike", column))
+}
+is_ligation = function(column) {
+  return(grepl("Ligati", column))
+}
+is_housekeeping = function(column) {
+  return(grepl("Housekee", column))
+}
+
+extract_pred = function(eset, predicate, counts=FALSE) {
+  if (!counts) {
+    counts = data.frame(exprs(eset))
+  } else {
+    counts = eset
+    }
+  toplot = counts[predicate(rownames(counts)),] %>%
+    tibble::rownames_to_column() %>%
+    tidyr::gather("sample", "count", -rowname)
+  colnames(toplot) = c("spot", "sample", "count")
+  toplot = toplot 
+  return(toplot)
+}
+
+spotbarplot = function(toplot) {
+  ggplot(toplot,
+        aes(sample, count)) + geom_bar(stat = 'identity') +
+    facet_wrap(~spot) +
+    theme(axis.text.x = element_blank(),
+          text = element_text(size = 8))
+}
+
+boxplot_expr <- function(eset,predicate) {
+    DF <- extract_pred(eset,predicate) %>%
+        tidyr::separate(spot,c("a","b","c","d"),sep = "_",remove = F) %>%
+        tidyr::unite(gene,b,c,sep = "_") %>%
+        dplyr::select(gene,count)
+    ggplot(DF,
+        aes(x = gene,y = count)) + geom_boxplot(colour = "black", fill = "#56B4E9") +
+        scale_y_continuous(trans = log2_trans()) +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5)) +
+        ylab("counts")
+}
+
+violin_expr <- function(ese,predicate) {
+    DF <- extract_pred(eset,predicate) %>%
+        tidyr::separate(spot,c("a","b","c","d"),sep = "_",remove = F) %>%
+        tidyr::unite(gene,b,c,sep = "_") %>%
+        dplyr::select(gene,count)
+    ggplot(DF,
+        aes(x = gene,y = count)) + geom_violin(colour = "black", fill = "#56B4E9") +
+        scale_y_continuous(trans = log2_trans()) +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5)) +
+        ylab("counts")
+}
+
+'%!in%' <- function(x,y)!('%in%'(x,y))
+```
+
+```{r}
+rccFiles = list.files(params$rcc_folder,pattern = "*.RCC",full.names = TRUE)
+eset = newRccSet(rccFiles = rccFiles, extraPdata = params$metadata_file)
+```
+
+
+```{r}
+data_dir <- file.path(params$output_dir,"data",Sys.Date(),"ncounts")
+dir.create(data_dir,recursive = T)
+```
+
+
+```{r header, child="_header.Rmd", eval = file.exists("_header.Rmd")}
+```
+
+# Quality Control {.tabset}
+
+## FOV
+
+The nCounter Digital Analyzer images each lane in discrete units, called fields of view (FOV). Optical issues, such as an inability to focus due to bubbles or insufficient oiling of the cartridge, can prevent successful imaging of a FOV. The Digital Analyzer reports the number of FOVs successfully imaged as FOV Counted. Significant discrepancy between the number of FOV for which imaging was attempted (FOV Count) and for which imaging was successful (FOV Counted) may be indicative of an issue with imaging performance. [extract from](http://www.nanostring.com/media/pdf/MAN_nCounter_Gene_Expression_Data_Analysis_Guidelines.pdf)
+
+
+```{r FOV}
+plotFOV(eset)
+```
+
+## BD
+
+The Binding Density is a measure of the number of optical features per square micron. It is useful for determining whether or not data collection has been compromised due to image saturation. Typically, the range for binding density will be between 0.05 and 2.25. extract from [here](http://www.nanostring.com/media/pdf/MAN_nCounter_Gene_Expression_Data_Analysis_Guidelines.pdf)
+
+
+```{r BD}
+plotBD(eset)
+```
+
+## Positive controls
+
+Expression of the positive control genes.
+
+
+```{r isPositive, warning=F, message=F}
+boxplot_expr(eset,is_positive)
+```
+
+## Negative controls
+
+Expression of the negative control genes. 
+
+```{r isNegative, warning=F, message=F}
+boxplot_expr(eset,is_negative)
+```
+
+## Noise Threshold- Limit Of Detection (LOD).
+
+We establish a noise threshold. This threshold is based on the mean and standard deviation of counts of the negative control genes and represents the background noise. We define it as the mean expression of the negative genes counts + 2 times the standard deviation.
+
+```{r}
+lodcounts = extract_pred(eset, is_negative)
+lod = mean(lodcounts$count) + 2 * sd(lodcounts$count)
+```
+
+## Housekeeping genes {.tabset}
+
+Expression of each housekeeping genes in all samples. The line in red represents the noise threshold. 
+
+### Expression
+
+The genes have different level of expression but show similar variability (size of the boxplot).
+
+```{r housekeeping}
+X <- boxplot_expr(eset,is_housekeeping)
+X + geom_hline(yintercept = (lod),colour = "red")
+```
+
+### Z-scores
+
+```{r housekeeping_z_scores}
+X <- exprs(eset)[grepl("keeping",rownames(exprs(eset))),]
+
+z_scores <- apply(X, 1, FUN = function(x){
+    (x - mean(x))/sd(x)
+})
+
+tidy_z_scores <- tidyr::gather(as.data.frame(z_scores))
+colnames(tidy_z_scores) <- c("gene","z_score")
+
+ggplot(tidy_z_scores, aes(gene, z_score)) + geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
+     xlab("") + ggtitle("") + theme(axis.text.x = element_text(angle = 90, 
+     hjust = 1,vjust = 0.5,size = 5)) +
+    geom_smooth(se = T, aes(group = 1))
+
+```
+
+## Expression of all the housekeeping genes in each sample.
+
+We plot the mean expression of all the housekeeping genes in each sample. 
+
+```{r}
+counts = exprs(eset)
+hk = counts[grepl("Housekeeping", rownames(counts)),]
+hkDF <- as.data.frame(hk)
+tidyHK <- tidyr::gather(hkDF)
+colnames(tidyHK) <- c("sample","count")
+ggplot(tidyHK, aes(sample, count)) + geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
+     scale_y_continuous(trans = log2_trans()) + 
+     xlab("") + ggtitle("") + theme(axis.text.x = element_text(angle = 90, 
+     hjust = 1,vjust = 0.5,size = 5)) +
+    geom_smooth(se = T, aes(group = 1)) +
+    geom_hline(yintercept = (lod),colour = "red") +
+    ylab("counts")
+```
+
+## General expression
+
+Expression of all genes (Endogenous + Housekeeping).
+
+```{r}
+counts = exprs(eset)
+endG = counts[grepl("Endogenous", rownames(counts)),]
+hk = counts[grepl("Housekeeping", rownames(counts)),]
+all <- rbind(endG,hk)
+allDF <- as.data.frame(all)
+tidyallDF <- tidyr::gather(allDF)
+colnames(tidyallDF) <- c("sample","count")
+ggplot(tidyallDF, aes(sample, count)) + geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
+     scale_y_continuous(trans = log2_trans()) + 
+     xlab("") + ggtitle("") + theme(axis.text.x = element_text(angle = 90, 
+     hjust = 1,vjust = 0.5,size = 5)) +
+    geom_smooth(se = T, aes(group = 1)) +
+    geom_hline(yintercept = lod,colour = "red")
+```
+
+# Normalization
+
+## Positive Normalization {.tabset}
+ 
+We perform a normalization using the expression of the positive genes. This attempts to normalize for technical noise across the samples.
+
+### Pre-norm
+```{r}
+geo_pos = function(eset) {
+     counts = exprs(eset)
+     hk = counts[grepl("Positive", rownames(counts)), ]
+     geoMeans = apply(hk, 2, function(col) exp(mean(log(col[col != 0]))))
+     return(geoMeans)
+ }
+posFactor = function(eset) {
+     geoMeans = geo_pos(eset)
+     nf = mean(geoMeans)/geoMeans
+     return(nf)
+}
+pData(eset)$pos_nf = posFactor(eset)
+counts = exprs(eset)
+
+counts = counts[!grepl("Positive", rownames(counts)),]
+counts = counts[!grepl("Negative", rownames(counts)),]
+
+prenorm = counts %>% data.frame() %>% tidyr::gather("sample", "count")
+prenorm$sample <- gsub("X","",prenorm$sample)
+ggplot(prenorm, aes(sample, count)) + geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
+     scale_y_continuous(trans = log2_trans()) + 
+     xlab("") + ggtitle("pre-normalization") + theme(axis.text.x = element_text(angle = 90, 
+     hjust = 1,vjust = 0.5,size = 5)) +    
+    geom_smooth(se = T, aes(group = 1)) +
+    geom_hline(yintercept = lod,colour = "red")
+```
+
+### Post-norm
+
+```{r}
+ncounts = counts %*% diag(pData(eset)$pos_nf)
+colnames(ncounts) = colnames(counts)
+postnorm = ncounts %>%
+  data.frame() %>%
+  tidyr::gather("sample", "count")
+postnorm$sample <- gsub("X","",postnorm$sample)
+ggplot(postnorm, aes(sample, count)) +
+  geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
+  scale_y_continuous(trans = log2_trans()) +
+  xlab("") + ggtitle("post-normalization") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5,size = 5)) +
+    geom_smooth(se = T, aes(group = 1)) +
+    geom_hline(yintercept = lod,colour = "red")
+```
+
+
+## Housekeeping normalization {.tabset}
+
+```{r}
+hk = ncounts[grepl("Housekeeping", rownames(ncounts)),]
+abovenoise = rowSums(hk > (lod)) >= (ncol(hk))
+hk_abovenoise = hk[abovenoise,]
+aboveMean = (apply(hk_abovenoise,1,mean)) >= 200
+hk_sel = hk_abovenoise[aboveMean,]
+hk_norm = rownames(hk_sel)
+```
+
+We select thouse housekeeping genes that have expression values greater than the noise threshold and a mean value of expression of at least `r params$hk_min_counts` counts. From the `r dim(hk)[1]` original genes, `r dim(hk_sel)[1]` pass these criteria.
+
+### Pre-norm
+
+```{r}
+ggplot(postnorm, aes(sample, count)) +
+  geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
+  scale_y_continuous(trans = log2_trans()) +
+  xlab("") + ggtitle("pre-normalization") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5,size = 5)) +
+    geom_smooth(se = T, aes(group = 1)) +
+    geom_hline(yintercept = lod,colour = "red")
+```
+
+
+### Post-norm
+
+```{r}
+hk_pos = function(counts) {
+  hk = counts[hk_norm,]
+  geoMeans = apply(hk, 2, function(col) exp(mean(log(col[col != 0]))))
+  return(geoMeans)}
+hkFactor = function(counts) {
+  geoMeans = hk_pos(counts)
+  nf = mean(geoMeans) / geoMeans
+  return(nf)}
+pData(eset)$hk_nf = hkFactor(ncounts)
+ncounts = ncounts %*% diag(pData(eset)$hk_nf)
+colnames(ncounts) = colnames(counts)
+postnorm = ncounts %>%
+  data.frame() %>%
+  tidyr::gather("sample", "count")
+postnorm$sample <- gsub("X","",postnorm$sample)
+
+ggplot(postnorm, aes(sample, count)) + geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
+     scale_y_continuous(trans = log2_trans()) + 
+     xlab("") + ggtitle("") + theme(axis.text.x = element_text(angle = 90, 
+     hjust = 1,vjust = 0.5,size = 5)) +
+    geom_smooth(se = T, aes(group = 1)) +
+    geom_hline(yintercept = lod,colour = "red")
+```
+
+
+## Drop genes
+
+We’ll drop the genes that are below the LOD in all the samples:
+
+```{r}
+allNames <- rownames(ncounts)
+
+ncounts = ncounts[((rowSums(ncounts <= lod)) < (ncol(ncounts))),]
+
+filteredNames <- rownames(ncounts)
+filterOutGenes <- allNames[allNames %!in% filteredNames]
+```
+
+From the original `r length(allNames)` genes, `r length(filteredNames)` passed this filter.
+
+```{r save_data}
+ncounts_df <- ncounts %>% as.data.frame() %>% tibble::rownames_to_column(var = "geneID")
+rio::export(ncounts_df,file = file.path(data_dir,"normalized_counts.csv"))
+```
+
+
+# Data structure
+
+Once the data is normalized and filtered, we proceed to analyze how the expression distributes the samples.
+
+## PCA Plot{.tabset}
+
+A PCA (Principal Component Analysis) performs a transformation over the data in order to obtain orthogonal vectors in such a way that the first principal component has the largest possible variance (that is, accounts for as much of the variability in the data as possible), and each succeeding component in turn has the highest variance possible under the constraint that it is orthogonal to the preceding components. 
+
+Plotting the samples in this transformed system show which samples are more similar.
+
+We can observe clearly how the samples distribute along the PC1 based on their grade and not to the group.
+
+```{r pca, message=FALSE, warning = FALSE}
+ncounts <- ncounts %>% round()
+
+dds = DESeqDataSetFromMatrix(countData = ncounts, colData = pData(eset), design = ~1)
+sizeFactors(dds) = rep(1, ncol(ncounts))
+dds = DESeq(dds)
+rld <- rlog(dds)
+rlogMat <- assay(rld)
+
+pc = pca_loadings(rlogMat)
+comps = data.frame(pc$x)
+comps$sample = rownames(comps)
+comps <- left_join(comps,pData(eset),by = c("sample" = "FileName"))
+```
+
+```{r }
+colorby = "grade"
+shapeby = "group"
+```
+
+### PC1 vs PC2 
+```{r PC1-PC2}
+customPlots::pca_plot_custom(pc,comps,1,2,colorby,shapeby)
+```
+
+### PC3 vs PC4 
+```{r PC3-PC4}
+customPlots::pca_plot_custom(pc,comps,3,4,colorby,shapeby)
+```
+
+### PC5 vs PC6 
+```{r PC5-PC6}
+customPlots::pca_plot_custom(pc,comps,5,6,colorby,shapeby)
+```
+
+### Variance explained by component
+```{r component-loadings}
+ggplot(data.frame(component = reorder(names(pc$percentVar), -pc$percentVar),
+                  percent_var = pc$percentVar),
+       aes(component, percent_var)) + geom_bar(stat = 'identity') +
+  ylab("percent of total variation") + xlab("") + theme_bw()
+```
+
+## Covariates correlation with PCs
+
+When multiple factors may influence the results of a given experiment, it is useful to assess which of them is responsible for the most variance as determined by PCA. We adapted the method described by Daily et al. where they integrated a method to correlate covariates with principal components values to determine the importance of each factor.
+
+```{r}
+DEGreport::degCovariates(rlogMat,pData(eset))
+```
+
+## Correlation analysis between metadata elements.
+
+We analyze if we observe any correlation between the metadata information.
+
+```{r}
+DEGreport::degCorCov(pData(eset), show_heatmap_legend = FALSE)
+```
+
+## PCA metadata {.tabset}
+
+We confirm the previous results by explore the distribution of the different metadata fields. In order to do so, we set fix the treatment (named here as group) and use different shapes. The rest of the metadata information is coded with colors.
+
+```{r}
+shapeby = "group"
+metadata_values <- names(comps)[!grepl("PC", names(comps))]
+metadata_values <- metadata_values[metadata_values %!in% c("sample","SampleID","Comments","biopsy_label","Meds","SampleType",
+"subject_id","case_number_mod","FovCount","case_number","date_right_colon_biopsy","DOB","pos_nf","hk_nf","grade","group")]
+```
+
+```{r, results = 'asis'}
+for (metadata_value in metadata_values) {
+    colorby = metadata_value
+    cat("\n###",metadata_value ,"\n")
+    p <- customPlots::pca_plot_custom(pc,comps,1,2,colorby,shapeby)
+    print(p)
+    cat("\n")
+}
+```
+
+
+# Conclusions
+
+
+# R session info
+```{r rsession}
+sessionInfo()
+```

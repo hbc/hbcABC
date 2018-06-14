@@ -1,0 +1,4 @@
+name: nanostring_qc
+description: >
+  Basic QC for nanostring.
+create_dir: false
