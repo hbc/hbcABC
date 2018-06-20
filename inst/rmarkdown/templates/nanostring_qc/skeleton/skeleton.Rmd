@@ -51,6 +51,8 @@ gg_color_hue <- function(n) {
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
+# Fields of View plot
+
 plotFOV = function(eset) {
   pdat = pData(eset) %>%
     tibble::rownames_to_column() 
@@ -81,6 +83,7 @@ plotBD = function(eset) {
 }
 
 
+# Predicates. Mainly usde by extract_pred
 
 is_positive = function(column) {
   return(grepl("Pos", column))
@@ -100,7 +103,7 @@ is_housekeeping = function(column) {
 
 extract_pred = function(eset, predicate, counts=FALSE) {
   if (!counts) {
-    counts = data.frame(exprs(eset))
+    counts = data.frame(Biobase::exprs(eset))
   } else {
     counts = eset
     }
@@ -110,14 +113,6 @@ extract_pred = function(eset, predicate, counts=FALSE) {
   colnames(toplot) = c("spot", "sample", "count")
   toplot = toplot 
   return(toplot)
-}
-
-spotbarplot = function(toplot) {
-  ggplot(toplot,
-        aes(sample, count)) + geom_bar(stat = 'identity') +
-    facet_wrap(~spot) +
-    theme(axis.text.x = element_blank(),
-          text = element_text(size = 8))
 }
 
 boxplot_expr <- function(eset,predicate) {
@@ -132,22 +127,52 @@ boxplot_expr <- function(eset,predicate) {
         ylab("counts")
 }
 
-violin_expr <- function(ese,predicate) {
-    DF <- extract_pred(eset,predicate) %>%
-        tidyr::separate(spot,c("a","b","c","d"),sep = "_",remove = F) %>%
-        tidyr::unite(gene,b,c,sep = "_") %>%
-        dplyr::select(gene,count)
-    ggplot(DF,
-        aes(x = gene,y = count)) + geom_violin(colour = "black", fill = "#56B4E9") +
-        scale_y_continuous(trans = log2_trans()) +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1,vjust = 0.5)) +
-        ylab("counts")
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+
+# Customized PCA plot
+
+pca_plot_custom = function(pc,comps, nc1, nc2,colorby,shapeby=NULL,
+                              highlight=NULL,textby=NULL,axisLimits=NULL, size = 3) {
+  require(ggplot2)
+  require(ggrepel)
+  c1str = paste0("PC", nc1)
+  c2str = paste0("PC", nc2)
+
+  if (!is.null(shapeby)){
+    scatter<-ggplot(comps, aes_string(c1str, c2str)) +
+    geom_point(aes_string(c1str, c2str,color=colorby,shape=shapeby),size= size) + theme_bw() +
+    xlab(paste0(c1str, ": ", round(pc$percentVar[nc1] * 100), "% variance")) +
+    ylab(paste0(c2str, ": ", round(pc$percentVar[nc2] * 100), "% variance"))+
+    theme(legend.text=element_text(size=12))+theme(legend.title=element_blank())
+  }else{
+    scatter<-ggplot(comps, aes_string(c1str, c2str)) +
+    geom_point(aes_string(c1str, c2str,color=colorby),size= size) + theme_bw() +
+    xlab(paste0(c1str, ": ", round(pc$percentVar[nc1] * 100), "% variance")) +
+    ylab(paste0(c2str, ": ", round(pc$percentVar[nc2] * 100), "% variance")) +
+    theme(legend.text=element_text(size=12))+theme(legend.title=element_blank())
+  }
+  if (!is.null(highlight)){
+    scatter<-scatter+geom_label_repel(data=highlight, aes_string(c1str, c2str,label=textby), size=size, show.legend = FALSE,
+                                      fontface = 'bold',
+                                      box.padding = unit(0.25,"lines"),
+                                      point.padding = unit(0.5,"lines"))
+  }
+
+  if(!is.null(axisLimits)){
+    scatter<-scatter+xlim(axisLimits[[1]])+ylim(axisLimits[[2]])
+  }
+  scatter
 }
 
-'%!in%' <- function(x,y)!('%in%'(x,y))
+
+
 ```
 
-```{r}
+
+```{r load_files}
+# Load files and create RccSet object
+
 rccFiles = list.files(params$rcc_folder,pattern = "*.RCC",full.names = TRUE)
 eset = newRccSet(rccFiles = rccFiles, extraPdata = params$metadata_file)
 ```
@@ -208,44 +233,23 @@ lodcounts = extract_pred(eset, is_negative)
 lod = mean(lodcounts$count) + 2 * sd(lodcounts$count)
 ```
 
-## Housekeeping genes {.tabset}
+## Housekeeping genes 
 
-Expression of each housekeeping genes in all samples. The line in red represents the noise threshold. 
+Expression of each housekeeping genes in all samples. The red line represents the noise threshold. 
 
 ### Expression
 
-The genes have different level of expression but show similar variability (size of the boxplot).
-
-```{r housekeeping}
+```{r housekeeping_expression}
 X <- boxplot_expr(eset,is_housekeeping)
 X + geom_hline(yintercept = (lod),colour = "red")
 ```
 
-### Z-scores
-
-```{r housekeeping_z_scores}
-X <- exprs(eset)[grepl("keeping",rownames(exprs(eset))),]
-
-z_scores <- apply(X, 1, FUN = function(x){
-    (x - mean(x))/sd(x)
-})
-
-tidy_z_scores <- tidyr::gather(as.data.frame(z_scores))
-colnames(tidy_z_scores) <- c("gene","z_score")
-
-ggplot(tidy_z_scores, aes(gene, z_score)) + geom_boxplot(colour = "black", fill = "#56B4E9",outlier.size = 0.5) +
-     xlab("") + ggtitle("") + theme(axis.text.x = element_text(angle = 90, 
-     hjust = 1,vjust = 0.5,size = 5)) +
-    geom_smooth(se = T, aes(group = 1))
-
-```
-
-## Expression of all the housekeeping genes in each sample.
+### Expression of all the housekeeping genes in each sample.
 
 We plot the mean expression of all the housekeeping genes in each sample. 
 
 ```{r}
-counts = exprs(eset)
+counts = Biobase::exprs(eset)
 hk = counts[grepl("Housekeeping", rownames(counts)),]
 hkDF <- as.data.frame(hk)
 tidyHK <- tidyr::gather(hkDF)
@@ -264,7 +268,7 @@ ggplot(tidyHK, aes(sample, count)) + geom_boxplot(colour = "black", fill = "#56B
 Expression of all genes (Endogenous + Housekeeping).
 
 ```{r}
-counts = exprs(eset)
+counts = Biobase::exprs(eset)
 endG = counts[grepl("Endogenous", rownames(counts)),]
 hk = counts[grepl("Housekeeping", rownames(counts)),]
 all <- rbind(endG,hk)
@@ -288,7 +292,7 @@ We perform a normalization using the expression of the positive genes. This atte
 ### Pre-norm
 ```{r}
 geo_pos = function(eset) {
-     counts = exprs(eset)
+     counts = Biobase::exprs(eset)
      hk = counts[grepl("Positive", rownames(counts)), ]
      geoMeans = apply(hk, 2, function(col) exp(mean(log(col[col != 0]))))
      return(geoMeans)
@@ -299,7 +303,7 @@ posFactor = function(eset) {
      return(nf)
 }
 pData(eset)$pos_nf = posFactor(eset)
-counts = exprs(eset)
+counts = Biobase::exprs(eset)
 
 counts = counts[!grepl("Positive", rownames(counts)),]
 counts = counts[!grepl("Negative", rownames(counts)),]
@@ -418,7 +422,6 @@ A PCA (Principal Component Analysis) performs a transformation over the data in 
 
 Plotting the samples in this transformed system show which samples are more similar.
 
-We can observe clearly how the samples distribute along the PC1 based on their grade and not to the group.
 
 ```{r pca, message=FALSE, warning = FALSE}
 ncounts <- ncounts %>% round()
@@ -436,23 +439,23 @@ comps <- left_join(comps,pData(eset),by = c("sample" = "FileName"))
 ```
 
 ```{r }
-colorby = "grade"
-shapeby = "group"
+colorby = "sample"
+shapeby = NULL
 ```
 
 ### PC1 vs PC2 
 ```{r PC1-PC2}
-customPlots::pca_plot_custom(pc,comps,1,2,colorby,shapeby)
+pca_plot_custom(pc,comps,1,2,colorby,shapeby)
 ```
 
 ### PC3 vs PC4 
 ```{r PC3-PC4}
-customPlots::pca_plot_custom(pc,comps,3,4,colorby,shapeby)
+pca_plot_custom(pc,comps,3,4,colorby,shapeby)
 ```
 
 ### PC5 vs PC6 
 ```{r PC5-PC6}
-customPlots::pca_plot_custom(pc,comps,5,6,colorby,shapeby)
+pca_plot_custom(pc,comps,5,6,colorby,shapeby)
 ```
 
 ### Variance explained by component
@@ -481,13 +484,9 @@ DEGreport::degCorCov(pData(eset), show_heatmap_legend = FALSE)
 
 ## PCA metadata {.tabset}
 
-We confirm the previous results by explore the distribution of the different metadata fields. In order to do so, we set fix the treatment (named here as group) and use different shapes. The rest of the metadata information is coded with colors.
-
 ```{r}
-shapeby = "group"
+shapeby = "sample"
 metadata_values <- names(comps)[!grepl("PC", names(comps))]
-metadata_values <- metadata_values[metadata_values %!in% c("sample","SampleID","Comments","biopsy_label","Meds","SampleType",
-"subject_id","case_number_mod","FovCount","case_number","date_right_colon_biopsy","DOB","pos_nf","hk_nf","grade","group")]
 ```
 
 ```{r, results = 'asis'}
