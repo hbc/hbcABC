@@ -44,12 +44,16 @@ saveRDS(rowData(bcb_filtered), file = file.path(data_dir,"rowData.rds"))
 
 ### Create Seurat object
 
+To create the Seurat object we need only our `bcb_filtered` object, which contains the raw counts from the cells that have passed our quality control filtering parameters:
+
 ```r
-seurat <- CreateSeuratObject(raw.data = counts(bcb_filtered), 
+seurat_raw <- CreateSeuratObject(raw.data = counts(bcb_filtered), 
                              meta.data = metrics(bcb_filtered))
                              
-saveRDS(seurat, file = file.path(data_dir,"seurat.rds"))
+saveRDS(seurat_raw, file = file.path(data_dir,"seurat_raw.rds"))
 ```
+
+Now that we have the Seurat object created, we can move on to the Seurat clustering analysis on O2.
 
 ## Setting up O2 environment to run clustering analysis
 
@@ -65,20 +69,166 @@ Then start an interactive session with extra memory and x11:
 srun --pty -p interactive -t 0-12:00 --x11 --mem 64G /bin/bash
 ```
 
-After starting the interactive session, load the necessary R modules:
+After starting the interactive session, load the necessary R modules and start R:
 
 ```bash
 module load gcc/6.2.0 R/3.4.1
+
+R
 ```
 
 ## Running the Seurat clustering analysis on O2
 
-The next step is performing the actual clustering analysis with Seurat on O2. We are following Lorena's `clustering.R` script, with descriptions and some additional plots added in.
+The next step is performing the actual clustering analysis with Seurat on O2. We are following **Lorena's `clustering_seurat.R` script** with descriptions and some additional plots added in. We are also using some descriptions from the **bcbioSingleCell clustering template**.
 
-# single cell clustering with seurat
+This workflow is adapted from the following sources:
 
+- Satija Lab: [Seurat v2 Guided Clustering Tutorial](http://satijalab.org/seurat/pbmc3k_tutorial.html)
+- Paul Hoffman: [Cell-Cycle Scoring and Regression](http://satijalab.org/seurat/cell_cycle_vignette.html)
+
+To identify clusters, the following steps will be performed:
+
+1. Normalization and transformation of the raw gene counts per cell to account for differences in sequencing depth.
+2. Identification of high variance genes.
+3. Regression of sources of unwanted variation (e.g. number of UMIs per cell, mitochondrial transcript abundance, cell cycle phase).
+4. Identification of the primary sources of heterogeneity using principal component (PC) analysis and heatmaps.
+5. Clustering cells based on significant PCs (metagenes).
+
+
+### Setting up the R environment
+
+Load the necessary libraries:
+
+```r
 library(Seurat)
 library(tidyverse)
+```
+
+Create variable for where you store the needed data and load the cell cycle file stored in this directory:
+
+```r
+data_dir <- "data" 
+
+load(file.path(data_dir, "cycle.rda")) 
+
+set.seed(1454944673L)   
+
+# Load Seurat object created                                                                                               
+
+seurat_raw <- readRDS(file.path(data_dir, "seurat_raw.rds"))
+```
+
+### Normalizing counts, finding variable genes, and scaling the data
+
+The raw counts are normalized using global-scaling normalization with the `NormalizeData()` function, which performs the following:
+
+1. normalizes the gene expression measurements for each cell by the total expression 
+2. multiplies this by a scale factor (10,000 by default)
+3. log-transforms the result
+
+```r
+# Normalize counts for total cell expression and take log value                            
+
+pre_regressed_seurat <- seurat_raw %>%
+                        NormalizeData(normalization.method = "LogNormalize",
+                                   scale.factor = 10000)  
+```
+
+Following normalization, the most variable genes are identified and will be used for downstream clustering analyses. The `FindVariableGenes()` function is called, which performs the following calculations:
+
+1. calculates the average expression and dispersion for each gene
+2. places these genes into bins
+3. calculates a z-score for dispersion within each bin
+
+This helps control for the relationship between variability and average expression. 
+
+```r
+# Find variable genes based on the mean-dispersion relationship based on z-score for dispersion. 
+
+pre_regressed_seurat <-  pre_regressed_seurat %>%
+                          FindVariableGenes(
+                            mean.function = ExpMean,
+                            dispersion.function = LogVMR,
+                            do.plot = FALSE)
+```
+
+It's recommended to set parameters as to mark visual outliers on dispersion plot - default parameters are for ~2,000 variable genes.
+
+Finally, the genes are scaled and centered using the `ScaleData()` function.
+
+```r
+pre_regressed_seurat <- pre_regressed_seurat %>%
+                        ScaleData(model.use = "linear")
+```
+
+We can plot dispersion (a normalized measure of to cell-to-cell variation) as a function of average expression for each gene to identify a set of high-variance genes. To check that the dispersions behave as expected, decreasing with increasing mean, and to identify the most variable genes, we can visualize the dispersions with the `VariableGenePlot()` function.
+
+```r
+# Plot variable genes
+
+VariableGenePlot(pre_regressed_seurat)
+```
+
+We can also check the number of variable genes:
+
+```r
+# Check number of variable genes to determine if correct parameters used  
+
+length(x = pre_regressed_seurat@var.genes)
+```
+
+### Sources of variation
+
+Your single-cell dataset likely contains "uninteresting" sources of variation. This can include technical noise, batch effects, and/or uncontrolled biological variation (e.g. cell cycle). We can use PCA to identify these sources of variation, especially cell cycle effects.
+
+### Cell cycle scoring
+
+If we want to examine cell cycle variation in our data, we assign each cell a score, based on its expression of G2/M and S phase markers. These marker sets should be anticorrelated in their expression levels, and cells expressing neither are likely not cycling and in G1 phase. We assign scores in the `CellCycleScoring()` function, which stores S and G2/M scores in `seurat@meta.data`, along with the predicted classification of each cell in either G2M, S or G1 phase.
+
+```r
+pre_regressed_seurat <- CellCycleScoring(
+  pre_regressed_seurat,
+  g2m.genes = g2m_genes,
+  s.genes = s_genes)
+```
+
+Here we are checking to see if the cells are grouping by cell cycle. If we don't see clear grouping of the cells into `G1`, `G2M`, and `S` clusters on the PCA plot, then it is recommended that we don't regress out cell-cycle variation. When this is the case, remove `S.Score` and `G2M.Score` from the variables to regress (`vars_to_regress`) in the R Markdown YAML parameters.
+
+```r
+pre_regressed_seurat = RunPCA(
+  pre_regressed_seurat,
+  pc.genes = c(s_genes, g2m_genes),
+  do.print = FALSE)
+
+PCAPlot(pre_regress, group.by= "Phase")
+```
+
+saveRDS(pre_regressed_seurat, file = file.path(data_dir, "seurat_pre_regress.rds"))
+
+#PCAPlot(pre_regress, group.by= "temperature", pt.shape = "fat", pt.size = 2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 data_dir = "data"
 load(file.path(data_dir, "cycle.rda"))
 set.seed(1454944673L)
