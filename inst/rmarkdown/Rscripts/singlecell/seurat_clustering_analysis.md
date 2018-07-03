@@ -230,32 +230,7 @@ saveRDS(pre_regressed_seurat, file = file.path(data_dir, "seurat_pre_regress.rds
 
 
 
-data_dir = "data"
-load(file.path(data_dir, "cycle.rda"))
-set.seed(1454944673L)
 
-readRDS(file.path(data_dir, "seurat_raw.rds"))
-seurat <- seurat %>%  NormalizeData(
-  normalization.method = "LogNormalize",
-  scale.factor = 10000)
-seurat =  seurat %>%
-  FindVariableGenes(
-    mean.function = ExpMean,
-    dispersion.function = LogVMR,
-    do.plot = FALSE)
-seurat = seurat %>%
-  ScaleData(model.use = "linear")
-VariableGenePlot(seurat, do.text = F)
-
-seurat = CellCycleScoring(
-  seurat,
-  g2m.genes = g2m_genes,
-  s.genes = s_genes)
-seurat = RunPCA(
-  seurat,
-  pc.genes = c(s_genes, g2m_genes),
-  do.print = FALSE)
-saveRDS(seurat, file = file.path(data_dir, "seurat_pre_regress.rds"))
 
 vars_to_regress = c("nUMI", "S.Score", "G2M.Score")
 seurat <- ScaleData(seurat, vars.to.regress = vars_to_regress)
