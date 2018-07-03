@@ -63,6 +63,19 @@ To run the clustering analysis on O2, be sure to have X11 forwarding working if 
 ssh -XY username@o2.hms.harvard.edu
 ```
 
+Edit the your `.Renviron` file to have the following inside:
+
+```bash
+vim ~/.Renviron
+
+
+R_LIBS_USER="/n/data1/cores/bcbio/R/library/3.4-bioc-release/library"
+
+R_MAX_NUM_DLLS=150
+```
+
+
+
 Then start an interactive session with extra memory and x11:
 
 ```bash
