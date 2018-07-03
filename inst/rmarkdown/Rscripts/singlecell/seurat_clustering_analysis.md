@@ -2,7 +2,56 @@
 
 This is a clustering analysis workflow to be run mostly on O2 using the output from the QC which is the filtered Seurat object. This workflow incorporates Lorena's scripts available within this same `Rscripts` folder. 
 
+The first thing needed is to convert the `bcb_filtered` object in the QC to a Seurat object. We can do this by running Lorena's bcb_to_seurat.R script in the directory of the QC analysis (likely on local machine). The contents of the script are described below.
 
+## Creating Seurat object at the end of the QC analysis
+
+### Setting up the parameters
+
+We need to load the `bcbioSingleCell` library and specify the appropriate organism and data directory to store output:
+
+```r
+library(bcbioSingleCell)
+
+species <- "mus musculus" # change to appropriate species
+
+data_dir <- "data"
+```
+
+### Define the cell cycle markers and save to file along with rowData
+
+In the clustering analysis, we need to determine the likely phase of the cell cycle for each cell, to do this we need a list of markers for our organism output from the bcbioSingleCell package:
+
+```r
+cell_cycle_markers <- bcbioSingleCell::cellCycleMarkers[[camel(species)]]
+
+s_genes <- cell_cycle_markers %>%
+    filter(phase == "S") %>%
+    pull("geneID")
+
+g2m_genes <- cell_cycle_markers %>%
+    filter(phase == "G2/M") %>%
+    pull("geneID")
+
+save(g2m_genes, s_genes, file = file.path(data_dir,"cycle.rda"))
+```
+
+Now save the rowData of the `bcb_filtered` data to file:
+
+```r
+saveRDS(rowData(bcb_filtered), file = file.path(data_dir,"rowData.rds"))
+```
+
+### Create Seurat object
+
+```r
+seurat <- CreateSeuratObject(raw.data = counts(bcb_filtered), 
+                             meta.data = metrics(bcb_filtered))
+                             
+saveRDS(seurat, file = file.path(data_dir,"seurat.rds"))
+```
+
+## Setting up O2 environment to run clustering analysis
 
 To run the clustering analysis on O2, be sure to have X11 forwarding working if you want to visualize any of the images. To do this, you may need to have XQuartz running on your local machine and log onto O2 with the terminal:
 
@@ -21,6 +70,8 @@ After starting the interactive session, load the necessary R modules:
 ```bash
 module load gcc/6.2.0 R/3.4.1
 ```
+
+## Running the Seurat clustering analysis on O2
 
 # single cell clustering with seurat
 
