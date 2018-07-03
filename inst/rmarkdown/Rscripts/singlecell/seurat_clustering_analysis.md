@@ -2,9 +2,9 @@
 
 This is a clustering analysis workflow to be run mostly on O2 using the output from the QC which is the filtered Seurat object. This workflow incorporates **Lorena's scripts** available within this same `Rscripts` folder. 
 
-The first thing needed is to convert the `bcb_filtered` object in the QC to a Seurat object. We can do this by running Lorena's bcb_to_seurat.R script in the directory of the QC analysis (likely on local machine). The contents of the script are described below.
-
 ## Creating Seurat object at the end of the QC analysis
+
+The first thing needed is to convert the `bcb_filtered` object in the QC to a Seurat object. We can do this by running Lorena's `bcb_to_seurat.R` script in the directory of the QC analysis (likely on local machine). The contents of the script are described below.
 
 ### Setting up the parameters
 
@@ -72,6 +72,8 @@ module load gcc/6.2.0 R/3.4.1
 ```
 
 ## Running the Seurat clustering analysis on O2
+
+The next step is performing the actual clustering analysis with Seurat on O2. We are following Lorena's `clustering.R` script, with descriptions and some additional plots added in.
 
 # single cell clustering with seurat
 
