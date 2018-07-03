@@ -339,6 +339,7 @@ saveRDS(seurat, file = file.path(data_dir, "seurat_tsne.rds"))
 ```
 
 
-> ***NOTE:** Use dev.off() if you want to save the figures generated.
->  Use the saved Seurat objects on a local computer to make report with figures.
->  rsync your data if you work on the cluster and local computer with the same data.*
+> ***NOTE:** 
+> - Use dev.off() if you want to save the figures generated.
+> - Use the saved Seurat objects on a local computer to make report with figures.
+> - rsync your data if you work on the cluster and local computer with the same data.*
