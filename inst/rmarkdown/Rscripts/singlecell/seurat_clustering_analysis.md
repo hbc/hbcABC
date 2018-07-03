@@ -177,9 +177,9 @@ We can also check the number of variable genes:
 length(x = pre_regressed_seurat@var.genes)
 ```
 
-### Sources of variation
+### Examining sources of variation in the data
 
-Your single-cell dataset likely contains "uninteresting" sources of variation. This can include technical noise, batch effects, and/or uncontrolled biological variation (e.g. cell cycle). We can use PCA to identify these sources of variation, especially cell cycle effects.
+Your single-cell dataset likely contains "uninteresting" sources of variation. This can include technical noise, batch effects, and/or uncontrolled biological variation (e.g. cell cycle). We can use PCA to identify these sources of variation, which can then be regressed out prior to further analysis.
 
 ### Cell cycle scoring
 
@@ -200,13 +200,14 @@ pre_regressed_seurat = RunPCA(
   pc.genes = c(s_genes, g2m_genes),
   do.print = FALSE)
 
-PCAPlot(pre_regress, group.by= "Phase")
+PCAPlot(pre_regressed_seurat, group.by= "Phase")
 ```
 
+Now save the pre-regressed Seurat object:
+
+```r
 saveRDS(pre_regressed_seurat, file = file.path(data_dir, "seurat_pre_regress.rds"))
-
-#PCAPlot(pre_regress, group.by= "temperature", pt.shape = "fat", pt.size = 2)
-
+```
 
 
 
