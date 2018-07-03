@@ -157,6 +157,8 @@ It's recommended to set parameters as to mark visual outliers on dispersion plot
 Finally, the genes are scaled and centered using the `ScaleData()` function.
 
 ```r
+# Scale and center data
+
 pre_regressed_seurat <- pre_regressed_seurat %>%
                         ScaleData(model.use = "linear")
 ```
@@ -186,6 +188,8 @@ Your single-cell dataset likely contains "uninteresting" sources of variation. T
 If we want to examine cell cycle variation in our data, we assign each cell a score, based on its expression of G2/M and S phase markers. These marker sets should be anticorrelated in their expression levels, and cells expressing neither are likely not cycling and in G1 phase. We assign scores in the `CellCycleScoring()` function, which stores S and G2/M scores in `seurat@meta.data`, along with the predicted classification of each cell in either G2M, S or G1 phase.
 
 ```r
+# Perform cell cycle scoring
+
 pre_regressed_seurat <- CellCycleScoring(
   pre_regressed_seurat,
   g2m.genes = g2m_genes,
@@ -195,6 +199,8 @@ pre_regressed_seurat <- CellCycleScoring(
 Here we are checking to see if the cells are grouping by cell cycle. If we don't see clear grouping of the cells into `G1`, `G2M`, and `S` clusters on the PCA plot, then it is recommended that we don't regress out cell-cycle variation. When this is the case, remove `S.Score` and `G2M.Score` from the variables to regress (`vars_to_regress`) in the R Markdown YAML parameters.
 
 ```r
+# Perform PCA and color by cell cycle phase
+
 pre_regressed_seurat = RunPCA(
   pre_regressed_seurat,
   pc.genes = c(s_genes, g2m_genes),
@@ -206,6 +212,8 @@ PCAPlot(pre_regressed_seurat, group.by= "Phase")
 Now save the pre-regressed Seurat object:
 
 ```r
+# Save pre-regression Seurat object
+
 saveRDS(pre_regressed_seurat, file = file.path(data_dir, "seurat_pre_regress.rds"))
 ```
 
@@ -218,6 +226,8 @@ We generally recommend minimizing the effects of variable read count depth (`nUM
 When regressing out the effects of cell-cycle variation, include `S.Score` and `G2M.Score` in the `vars.to.regress` argument. Cell-cycle regression is generally recommended but should be avoided for samples containing cells undergoing differentiation.
 
 ```r
+# Regress out the uninteresting sources of variation in the data
+
 vars_to_regress <- c("nUMI", "S.Score", "G2M.Score")
 
 seurat <- ScaleData(pre_regressed_seurat, vars.to.regress = vars_to_regress)
@@ -226,6 +236,8 @@ seurat <- ScaleData(pre_regressed_seurat, vars.to.regress = vars_to_regress)
 Now that regression has been applied, let's recheck to see if the cells are no longer clustering by cycle. We should now see the phase clusters superimpose.
 
 ```r
+# Re-run the PCA plots and color by cell cycle phase
+
 seurat <- RunPCA(
   seurat,
   pc.genes = c(s_genes, g2m_genes),
@@ -239,14 +251,12 @@ PCAPlot(seurat, group.by= "Phase")
 Next, we perform principal component analysis (PCA) on the scaled data with `RunPCA()`. By default, the genes in `seurat@var.genes` are used as input, but can be defined using the `pc.genes` argument. `ProjectPCA()` scores each gene in the dataset (including genes not included in the PCA) based on their correlation with the calculated components. Though we don't use this further here, it can be used to identify markers that are strongly correlated with cellular heterogeneity, but may not have passed through variable gene selection.  The results of the projected PCA can be explored by setting `use.full = TRUE` for `PrintPCA()`.
 
 ```r
+# Perform the scoring for all genes
+
 seurat <- seurat %>%
   RunPCA(do.print = FALSE) %>%
   ProjectPCA(do.print = FALSE)
 ```
-
-### `PCHeatmap()`
-
-In particular, `PCHeatmap()` allows for easy exploration of the primary sources of heterogeneity in a dataset, and can be useful when trying to decide which PCs to include for further downstream analyses. Both cells and genes are ordered according to their PCA scores. Setting `cells.use` to a number plots the "extreme" cells on both ends of the spectrum, which dramatically speeds plotting for large datasets. Though clearly a supervised analysis, we find this to be a valuable tool for exploring correlated gene sets.
 
 ## Determine statistically significant principal components
 
@@ -265,16 +275,20 @@ We're using a heuristic approach here, by calculating where the principal compon
 
 This methodology is also commonly used for PC covariate analysis on bulk RNA-seq samples.
 
-# this is an automatation of the PC to be used but
-# it is better to show as many as possible to the client and
-# decide together if more are needed.
+```r
+# Create elbow plot
+
 PCElbowPlot(seurat)
+
+# Determine the estimate for significant PCs
+
 pct = seurat@dr$pca@sdev / sum(seurat@dr$pca@sdev) * 100
 cum = cumsum(pct)
 co1 = which(cum > 90 & pct < 5)[1]
 co2 = sort(which((pct[1:length(pct)-1] - pct[2:length(pct)]) > 0.1),
            decreasing = T)[1] + 1 # last point where change of % of variation is more than 0.1%.
 pcs = min(co1, co2) # change to any other number
+```
 
 ## Cluster the cells
 
@@ -285,6 +299,8 @@ The `FindClusters()` function implements the procedure, and contains a `resoluti
 Regarding the value of the `resolution` argument, use a value < 1 if you want to obtain fewer clusters.
 
 ```r
+# Find cell clusters
+
 seurat <- FindClusters(
   seurat,
   dims.use = 1:pcs,
@@ -301,20 +317,27 @@ PrintFindClustersParams(seurat)
 
 # Run non-linear dimensional reduction
 
-## t-SNE {.tabset}
+## t-SNE
 
 [Seurat][] continues to use t-distributed stochastic neighbor embedding (t-SNE) as a powerful tool to visualize and explore these datasets. While we no longer advise clustering directly on t-SNE components, cells within the graph-based clusters determined above should co-localize on the t-SNE plot. This is because the t-SNE aims to place cells with similar local neighborhoods in high-dimensional space together in low-dimensional space. As input to the t-SNE, we suggest using the same PCs as input to the clustering analysis, although computing the t-SNE based on scaled gene expression is also supported using the `genes.use` argument.
 
 ```r
+# Run the TSNE and plot
+
 seurat <- RunTSNE(
   seurat,
   dims.use = 1:pcs,
   do.fast = TRUE)
+  
+TSNEPlot(object = seurat)
 ```
 
-saveRDS(seurat, file = file.path(data_dir, "seurat_tsne.rds"))
+```r
+# Save clustered cells
 
-TSNEPlot(object = seurat)
+saveRDS(seurat, file = file.path(data_dir, "seurat_tsne.rds"))
+```
+
 
 # dev.off() # if you want to save the figures generated.
 # Use this objects in local computer to make the report with figures.
