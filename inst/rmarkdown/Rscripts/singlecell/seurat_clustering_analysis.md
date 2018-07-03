@@ -1,6 +1,6 @@
 # Seurat singlecell RNA-Seq clustering analysis
 
-This is a clustering analysis workflow to be run mostly on O2 using the output from the QC which is the filtered Seurat object. This workflow incorporates Lorena's scripts available within this same `Rscripts` folder. 
+This is a clustering analysis workflow to be run mostly on O2 using the output from the QC which is the filtered Seurat object. This workflow incorporates **Lorena's scripts** available within this same `Rscripts` folder. 
 
 The first thing needed is to convert the `bcb_filtered` object in the QC to a Seurat object. We can do this by running Lorena's bcb_to_seurat.R script in the directory of the QC analysis (likely on local machine). The contents of the script are described below.
 
