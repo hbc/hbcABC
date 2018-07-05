@@ -131,6 +131,14 @@ set.seed(1454944673L)
 seurat_raw <- readRDS(file.path(data_dir, "seurat_raw.rds"))
 ```
 
+### Subsetting to a single sample
+
+Often identifying cell types is easiest for a single sample type. To subset the Seurat object, we can use the `SubsetData()` function. For example:
+
+```r
+pre_regressed_white <- SubsetData(pre_regressed_seurat, cells.use = rownames(pre_regressed_seurat@meta.data)[which(pre_regressed_seurat@meta.data$interestingGroups == "white")])
+```
+
 ### Normalizing counts, finding variable genes, and scaling the data
 
 The raw counts are normalized using global-scaling normalization with the `NormalizeData()` function, which performs the following:
