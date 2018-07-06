@@ -85,7 +85,7 @@ srun --pty -p interactive -t 0-12:00 --x11 --mem 128G /bin/bash
 After starting the interactive session, load the necessary R modules and start R:
 
 ```bash
-module load gcc/6.2.0 R/3.4.1
+module load gcc/6.2.0 R/3.4.1 hdf5/1.10.1
 
 R
 ```
