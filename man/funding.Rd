@@ -30,6 +30,6 @@ funding_niehs(author)
 Return acknowledgement section for analysis done by HBC
 }
 \examples{
-funding_general("Lorena Pantnao", "RNASeq...")
+funding_general("Lorena Pantano", "RNASeq...")
 funding_catalyst()
 }
