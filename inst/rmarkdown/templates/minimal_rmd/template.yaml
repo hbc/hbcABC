@@ -1,0 +1,5 @@
+name: Minimal template with format and basic structure
+description: >
+    It contains most used knitr options, basic libraries,
+    cache path, r session output.
+create_dir: false
