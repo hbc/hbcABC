@@ -2,7 +2,7 @@
 library(SingleCellExperiment)
 library(Matrix)
 
-final_project = "~/orch/hbc/PIs/kerry_ressler/hbc_snRNAseq_ressler_prefontalcortex_in_monkeyBA25_hbc02514/mouse/final/2019-02-14_mouse/"
+final_project = "final/yyyy-mm-dd_XXXX/"
 species = "Home sapiens"
 
 counts = readMM(file.path(final_project, "tagcounts.mtx"))
