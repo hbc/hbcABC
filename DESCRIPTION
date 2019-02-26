@@ -1,9 +1,9 @@
 Package: hbcABC
 Type: Package
 Title: Rmarkdown templates for bioinformatic analysis
-Version: 0.1.0
+Version: 0.3.0
 Depends:
-    R (>= 3.4.0),
+    R (>= 3.5.0),
 biocViews:
     ReportWriting
 Authors@R: c(
@@ -75,4 +75,4 @@ Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1

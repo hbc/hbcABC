@@ -58,4 +58,4 @@ metadata[["mtUMI"]][is.na(metadata[["mtUMI"]])] = 0
 metadata[["mitoRatio"]] = metadata$mtUMI/metadata$nUMI
 
 se = SingleCellExperiment(assays=list(raw=counts), colData = metadata)
-save(se, file = "data/se.rda")
+saveRDS(se, file = "data/se.rds")
