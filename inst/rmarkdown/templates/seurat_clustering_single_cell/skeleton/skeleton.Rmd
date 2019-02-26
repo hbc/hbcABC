@@ -20,7 +20,7 @@ params:
     output_dir: "."
     pc_compute: 15
     seurat: "seurat_pre_regress.rds"
-    seurat_tsne: "seurat_tsne.rsd"
+    seurat_tsne: "seurat_tsne.rds"
     rowdata: "rowData.rds"
 ---
 
@@ -167,8 +167,8 @@ lapply(1:params$pc_compute, function(pc){
             data.frame(gene = names(.), score = ., stringsAsFactors = F),
         sort(projection[,pc])[1:15] %>% 
             data.frame(gene = names(.), score = ., stringsAsFactors = F)
-    ) %>% left_join(rows, by = c("gene" = "geneID")) %>% 
-        select(geneName, score) %>% 
+    ) %>% left_join(rows, by = c("gene" = "gene_id")) %>% 
+        dplyr::select(gene_name, score) %>% 
         set_names(paste(paste0("PC", pc), names(.)))
 }) %>% bind_cols() %>% kable()
 ```
@@ -233,6 +233,26 @@ PrintTSNEParams(seurat)
 Note that tSNE is not PCA! The measurement of distance in a tSNE plot is difficult to interpret, and is most helpful for the relationships of close neighbors. To better infer separation distance between the putative clusters, PCA is aswell shown.
 
 
+## Clusters with different resolutions {.tabset}
+
+```{r all-resolutions}
+res_values = names(slot(seurat, "meta.data"))[grepl("res.", names(slot(seurat, "meta.data")))]
+all_res = lapply(res_values,
+                 function(res){
+                     TSNEPlot(SetAllIdent(seurat, res),
+                              do.return = TRUE,do.label = TRUE) +
+                         theme(legend.position="none") +
+                         ggtitle(res)
+                 })
+plot_grid(plotlist = all_res)
+```
+
+```{r, eval=FALSE}
+# in case you want to change it
+seurat = SetAllIdent(seurat, id = "res.1.4")
+```
+
+
 ## Clusters {.tabset}
 
 ```{r get-cluster-labels-position}
@@ -268,7 +288,7 @@ plot_grid(
 ## Other variables {.tabset}
 
 ```{r dim_reduction_plots, results="asis", fig.width=10, fig.height=6}
-group_by = c("Phase") # Add whatever column in colData to color by other group
+group_by = c("Phase", "sample") # Add whatever column in colData to color by other group
 
 class_tsne_data = FetchData(seurat, vars.all = c("ident", "tSNE_1", "tSNE_2", group_by))
 class_pca_data = FetchData(seurat, vars.all = c("ident", "PC1", "PC2", group_by))
@@ -329,17 +349,17 @@ lapply(paste0("PC", 1:params$pc_compute), function(pc){
 ```{r tsne-custom-genes, eval = FALSE, fig.width=9, fig.height=9}
 library(rio)
 # symbols vector with list of genes 
-custom_genes = rows %>% filter(geneName  %in% symbols) %>%
-    select(geneID, geneName)
-plot_selected = custom_genes$geneID
-names(plot_selected) = custom_genes$geneName
+custom_genes = rows %>% filter(gene_name  %in% symbols) %>%
+    select(gene_id, gene_name)
+plot_selected = custom_genes$gene_id
+names(plot_selected) = custom_genes$gene_name
 
 tsne = FetchData(seurat, vars.all = c("tSNE_1", "tSNE_2"))
 gene_data = FetchData(seurat, vars.all = custom_genes$geneID)
 colnames(gene_data) = names(plot_selected)[match(plot_selected, colnames(gene_data))]
 gene_data = cbind(tsne, gene_data)
 
-lapply(custom_genes$geneName, function(g){
+lapply(custom_genes$gene_name, function(g){
     ggplot(gene_data, aes(tSNE_1, tSNE_2)) +
     geom_point(aes_string(color=g), alpha = 0.7) +
     scale_color_gradient(guide = FALSE, low = "grey90", high = "blue")  +
@@ -350,7 +370,7 @@ lapply(custom_genes$geneName, function(g){
 ```
 
 ```{r expression-activity-genes, eval = FALSE}
-lapply(custom_genes$geneName, function(g){
+lapply(custom_genes$gene_name, function(g){
     cat("\n\n## ", g, "\n\n")
     ggplot(gene_data, aes_string("condition", g)) +
         geom_jitter(size = 0.5, alpha = 0.4) +
