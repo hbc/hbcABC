@@ -1,4 +1,4 @@
-name: Simple QC Single Cell RNA-seq
+name: Simple QC bulk RNA-seq
 description: >
   Template for RNAseq QC with simpler figures.
   Good for very quick view of the data.
