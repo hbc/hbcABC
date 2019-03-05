@@ -2,4 +2,5 @@ name: Simple QC bulk RNA-seq
 description: >
   Template for RNAseq QC with simpler figures.
   Good for very quick view of the data.
+  Need of bcbioRNASeq object.
 create_dir: false

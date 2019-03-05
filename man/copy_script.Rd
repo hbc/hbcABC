@@ -4,13 +4,20 @@
 \alias{copy_script}
 \title{Copy a given script to other place}
 \usage{
-copy_script(category, fn, dest = NULL, ...)
+copy_script(category, fn, dest = NULL, dry = FALSE, ...)
 }
 \arguments{
 \item{category}{Name of type of analysis.}
 
 \item{fn}{Name of the file to copy.}
+
+\item{dest}{Final folder to copy the file to.}
+
+\item{dry}{Whether to run or not the copy action.}
 }
 \description{
 Copy a given script to other place
+}
+\examples{
+copy_script("singlecell", "markers_seurat.R", dry=TRUE)
 }

@@ -3,7 +3,12 @@
 #' @rdname show_scripts
 #' @param category Name of type of analysis. (singlecell for now)
 #' @export
-show_scripts = function(category="singlecell"){
+#' @examples
+#' show_scripts() # show categories
+#' show_scripts("singlecell")
+show_scripts = function(category=NULL){
+    if (is.null(category))
+        return(list.files(file.path(system.file("rmarkdown", package="hbcABC"), "Rscripts")))
     list.files(file.path(system.file("rmarkdown", package="hbcABC"),
               "Rscripts",
               category))
@@ -14,14 +19,26 @@ show_scripts = function(category="singlecell"){
 #' @rdname copy_script
 #' @param category Name of type of analysis.
 #' @param fn Name of the file to copy.
+#' @param dest Final folder to copy the file to.
+#' @param dry Whether to run or not the copy action.
 #' @export
-copy_script = function(category, fn, dest=NULL, ...){
+#' @examples
+#' copy_script("singlecell", "markers_seurat.R", dry=TRUE)
+copy_script = function(category, fn, dest=NULL, dry=FALSE, ...){
     if (is.null(dest))
         dest = getwd()
+    if (!file.exists(dest))
+        dir.create(dest, recursive = TRUE)
     dest = file.path(dest, fn)
-    file.copy(file.path(system.file("rmarkdown", package="hbcABC"),
+    origin =  file.path(system.file("rmarkdown", package="hbcABC"),
                         "Rscripts",
                         category,
-                        fn),
-              dest, ...)
+                        fn)
+    if (!file.exists(origin)){
+        message("Use show_scripts to find accesible files")
+        stop("This file doesn't exist ", origin)
+    }
+    if (!dry)
+        file.copy(origin, dest, ...)
+    message("copy ", fn, " to ", dest)
 }

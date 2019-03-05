@@ -4,11 +4,15 @@
 \alias{show_scripts}
 \title{Show all available scripts}
 \usage{
-show_scripts(category = "singlecell")
+show_scripts(category = NULL)
 }
 \arguments{
 \item{category}{Name of type of analysis. (singlecell for now)}
 }
 \description{
 Show all available scripts
+}
+\examples{
+show_scripts() # show categories
+show_scripts("singlecell")
 }

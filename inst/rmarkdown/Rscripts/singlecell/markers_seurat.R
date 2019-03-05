@@ -6,7 +6,7 @@ data_dir = "data"
 set.seed(1454944673L)
 seurat_object = "seurat_tsne.rds"
 
-readRDS(seurat, file = file.path(data_dir, seurat_object))
+seurat = readRDS(file = file.path(data_dir, seurat_object))
 markers = FindAllMarkers(object = seurat, only.pos = TRUE, min.pct = 0.25,
                          thresh.use = 0.25)
 saveRDS(markers, file.path(data_dir, "markers.rds"))
