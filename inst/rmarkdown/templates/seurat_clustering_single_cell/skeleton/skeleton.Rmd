@@ -1,6 +1,6 @@
 ---
 title: "Single Cell Seurat Clustering"
-author: "`r getOption('author')`"
+author: "NNNNN LLLLLLL"
 date: "`r Sys.Date()`"
 bibliography: bibliography.bib
 output:
@@ -22,6 +22,7 @@ params:
     seurat: "seurat_pre_regress.rds"
     seurat_tsne: "seurat_tsne.rds"
     rowdata: "rowData.rds"
+    res: "res.1.4"
 ---
 
 bcbio_filtered.rda object needs to be processed before run this template:
@@ -249,7 +250,7 @@ plot_grid(plotlist = all_res)
 
 ```{r, eval=FALSE}
 # in case you want to change it
-seurat = SetAllIdent(seurat, id = "res.1.4")
+seurat = SetAllIdent(seurat, id = params$res)
 ```
 
 
@@ -344,9 +345,10 @@ lapply(paste0("PC", 1:params$pc_compute), function(pc){
 }) %>% plot_grid(plotlist = .)
 ```
 
-# Custom genes {.tabset}
 
 ```{r tsne-custom-genes, eval = FALSE, fig.width=9, fig.height=9}
+# Custom genes {.tabset}
+
 library(rio)
 # symbols vector with list of genes 
 custom_genes = rows %>% filter(gene_name  %in% symbols) %>%

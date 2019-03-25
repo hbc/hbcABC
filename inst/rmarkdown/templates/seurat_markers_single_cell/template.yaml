@@ -1,0 +1,5 @@
+name: Single Cell Seurat Markers Analysis
+description: >
+  Template for scRNAseq to perform
+  seurat markers with pre-computed data.
+create_dir: false

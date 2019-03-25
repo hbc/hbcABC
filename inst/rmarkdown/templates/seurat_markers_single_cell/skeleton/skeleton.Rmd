@@ -1,0 +1,271 @@
+---
+title: "Markers"
+author: "NNNN LLLLLLL"
+date: "`r Sys.Date()`"
+params:
+    data_dir: "../data"
+    seurat_tsne: "tsne.rds"
+    markers: "markers.rds"
+    rownames: "rownames.rds"
+    output_fn: "results/markers.csv"
+    cache: "cache_dir/"
+    scratch: FALSE
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        number_sections: false
+        self_contained: true
+        theme: paper
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+    pdf_document:
+        number_sections: false
+        toc: true
+        toc_depth: 1
+---
+
+
+```{r render-opts, results='hide'}
+# Set seed for reproducibility
+set.seed(1454944673L)
+library(knitr)
+
+if (!params$scratch){
+    message("render from scratch")
+    unlink(params$cache,recursive = T)
+}
+
+opts_chunk[["set"]](
+    audodep = TRUE,
+    cache = TRUE,
+    cache.lazy = FALSE,
+    cache.path = params$cache,
+    error = TRUE,
+    fig.height = 8L,
+    fig.retina = 2L,
+    fig.width = 8L,
+    message = FALSE,
+    tidy = TRUE,
+    warning = FALSE
+)
+
+```
+
+```{r load-libs, cache = FALSE}
+library(ggplot2)
+library(cowplot)
+library(tidyverse)
+library(Seurat)
+library(rio)
+library(janitor)
+
+rows = readRDS(file.path(params$data_dir, params$rownames))
+markers = readRDS(file.path(params$data_dir, params$markers))
+theme_set(theme_light(base_size = 11))
+theme_update(legend.position = "bottom")
+```
+
+
+We used seurat to dentify positive and negative markers of a single cluster (specified in ident.1), compared to all other cells. `FindAllMarkers` automates this process for all clusters, but you can also test groups of clusters vs. each other, or against all cells.
+ 
+The results data frame has the following columns :
+
+* p_val : p_val (unadjusted)
+* avg_logFC : log fold-chage of the average expression between the two groups. Positive values indicate that the gene is more highly expressed in the first group.
+* pct.1 : The percentage of cells where the gene is detected in the first group
+* pct.2 : The percentage of cells where the gene is detected in the second group
+* p_val_adj : Adjusted p-value, based on bonferroni correction using all genes in the dataset.
+
+By default the test used is "wilcox" : Wilcoxon rank sum test (default). It tends to over-represent significant clusters and we can explore other test in the future depending on this results.
+
+
+```{r load-seurat, cache=FALSE}
+seurat = readRDS(file.path(params$data_dir, params$seurat_tsne))
+```
+
+```{r get-cluster-labels-position}
+tsne_label = FetchData(seurat, vars.all = c("ident", "tSNE_1", "tSNE_2"))  %>% 
+    as.data.frame() %>% 
+    group_by(ident) %>%
+    summarise(x=mean(tSNE_1), y=mean(tSNE_2))
+pca_label = FetchData(seurat, vars.all = c("ident", "PC1", "PC2"))  %>% 
+    as.data.frame() %>% 
+    mutate(ident = seurat@ident) %>% 
+    group_by(ident) %>%
+    summarise(x=mean(PC1), y=mean(PC2))
+```
+
+
+# Novel markers 
+
+```{r}
+markers %>%  rownames_to_column("id") %>% 
+    left_join(rows, by = c("id" = "gene_id")) %>% 
+        write_csv(params$output_fn)
+```
+
+```{r}
+
+reduce <- function(X, Y, resolution=80){
+
+    resolution <- max(resolution, 1L)
+    resolution <- min(resolution, sqrt(.Machine$integer.max))
+    resolution <- as.integer(resolution)
+    
+    # X and Y MUST be numeric.
+    rangeX <- range(X)
+    rangeY <- range(Y)
+    
+    binX <- (rangeX[2] - rangeX[1])/resolution
+    xid <- (X - rangeX[1])/binX
+    xid <- as.integer(xid)
+    
+    binY <- (rangeY[2] - rangeY[1])/resolution
+    yid <- (Y - rangeY[1])/binY
+    yid <- as.integer(yid)
+    
+    # Getting unique IDs, provided resolution^2 < .Machine$integer.max
+    # We use fromLast=TRUE as the last points get plotted on top.
+    id <- xid + yid * resolution 
+    return(id)
+}
+
+```
+
+
+All markers are in the [markers](results/markers.csv) file.
+
+## Novel markers over tSNE {.tabset}
+
+I have selected the top 12 to plot.
+
+I have reduced the ammount of points to plot to get a quicker turn around
+on the time to render the document. It summarises the cells that overlap
+on the same space and plot the median expression value.
+
+I plot the markers of one of the cluster to compare.
+
+## cluster 1 at full resolution
+
+```{r cluster-10, fig.width=9, fig.height=9}
+top10 = markers %>% group_by(cluster) %>% 
+    arrange(desc(avg_logFC)) %>% 
+    filter(p_val_adj<0.001) %>% 
+    top_n(n = 12, wt = avg_logFC)
+
+gene_data = FetchData(seurat, vars.all = c("tSNE_1", "tSNE_2",
+                                           "ident",
+                                           unique(top10$gene))) %>% 
+    mutate(id_group=reduce(tSNE_1, tSNE_2)) %>% 
+    gather(id, counts, -tSNE_1,-tSNE_2,-ident, -id_group) %>% 
+    left_join(rows, by = c("id" = "gene_id"))
+genes = filter(top10, cluster == 1) %>% .[["gene"]] %>% as.character()
+
+group_by(filter(gene_data, id  %in% genes),
+             id, ident, id_group, gene_name) %>% 
+    summarise(tSNE_1=mean(tSNE_1), tSNE_2=mean(tSNE_2),
+              value=median(counts)) %>% 
+    ggplot(aes(tSNE_1, tSNE_2)) +
+    geom_point(aes(color=value), alpha=0.8) +
+    scale_color_gradient2(guide = FALSE, midpoint = 0,
+                          mid = "grey90",
+                          high = "#2c7fb8") +
+    geom_text(data=tsne_label, aes(label=ident, x, y)) +
+    facet_wrap(~gene_name)
+```
+
+## All cluster 80% resolution {.tabset}
+
+```{r tsne-markers, fig.width=9, fig.height=9, results='asis'}
+
+lapply(as.character(unique(gene_data$ident)), function(c){
+    cat("\n\n### ", c, " \n\n")
+    genes = filter(top10, cluster == c) %>% .[["gene"]] %>% as.character()
+    if (length(genes)==0){
+        print("No significant markers.")
+        return(NULL)
+    }
+    p = group_by(filter(gene_data, id  %in% genes),
+                 id, ident, id_group, gene_name) %>% 
+        summarise(tSNE_1=mean(tSNE_1), tSNE_2=mean(tSNE_2),
+                  value=median(counts)) %>% 
+        ggplot(aes(tSNE_1, tSNE_2)) +
+        geom_point(aes(color=value), alpha=0.8) +
+        scale_color_gradient2(guide = FALSE, midpoint = 0,
+                              mid = "grey90",
+                              high = "#2c7fb8") +
+        geom_text(data=tsne_label, aes(label=ident, x, y)) +
+        facet_wrap(~gene_name)
+    print(p)
+})  %>% invisible()
+
+```
+
+
+## Known markers co-expression {.tabset}
+
+To show the co-expression of markers I calculate the average of expression of the cells in the cluster and then calculate the distance with `(1-cor(ma))^2` and the method __kendall__ and perform the clustering with the method __ward.D2__.
+
+```{r expression-marker-genes, results='asis', fig.height=16, fig.width=9}
+
+lapply(as.character(unique(gene_data$ident)), function(c){
+    cat("\n\n### ", c, " top 30 markers \n\n")
+    genes = markers %>% filter(cluster==c) %>% 
+        arrange(desc(avg_logFC)) %>% 
+        filter(p_val_adj<0.001) %>% 
+        top_n(n = 40, wt = avg_logFC) %>% 
+         .[["gene"]] %>% as.character()
+    if (length(genes)<2){
+        print("Not enough genes to plot.")
+        return(NULL)
+    }
+    
+    data = FetchData(seurat, vars.all = c("tSNE_1", "tSNE_2",
+                                          "ident",
+                                          genes)) %>% 
+    mutate(id_group=reduce(tSNE_1, tSNE_2)) %>% 
+    gather(id, counts, -tSNE_1,-tSNE_2,-ident, -id_group) %>% 
+    left_join(rows, by = c("id" = "gene_id"))
+
+    ma = data %>% 
+    group_by(gene_name, ident) %>% 
+   # summarise(value=mean(counts>quantile(counts, .75))) %>%
+    summarise(value=mean(counts)) %>%
+    spread(ident, value) %>% 
+    as.data.frame() %>% 
+    column_to_rownames("gene_name") %>% 
+    as.matrix()
+
+    ma = ma + rnorm(nrow(ma), 0.01, sd = 0.001)
+    
+    xclus = hclust(as.dist((1-cor(ma, method = "kendall"))^2), method = "ward.D2")
+    yclus = hclust(as.dist((1-cor(t(ma), method = "kendall"))^2), method = "ward.D2")
+    xlevel = xclus$labels[xclus$order]
+    ylevel = yclus$labels[yclus$order]
+    
+    p = data %>% 
+        group_by(gene_name, ident) %>% 
+        summarise(value=mean(counts)) %>%
+        ungroup() %>% 
+        mutate(ident = factor(ident, levels=xlevel),
+               gene_name = factor(gene_name, levels = ylevel)) %>% 
+        ggplot(aes(ident, gene_name, fill=value)) +
+        geom_tile() +
+        theme(axis.text.x = element_text(angle=90, hjust = 1, vjust = 0.5)) +
+        scale_fill_gradient2(mid = "grey90", high = "#2c7fb8", midpoint = 0)
+    print(p)
+    cat("\n\n")
+}) %>% invisible()
+```
+
+
+# Session
+```{r footer, results='markup'}
+sessionInfo()
+```
+
+
