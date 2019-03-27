@@ -1,30 +1,28 @@
 ---
 title: "Differential Expression for multiple contrasts"
-author: "`r getOption('author')`"
+author: "NNNNN LLLLL"
 date: "`r Sys.Date()`"
-bibliography: bibliography.bib
-html_document:
-    code_folding: hide
-    df_print: paged
-    highlight: pygments
-    number_sections: false
-    self_contained: true
-    theme: cosmo
-    toc: true
-    toc_float:
-        collapsed: true
-        smooth_scroll: false
-pdf_document:
-    number_sections: false
-    toc: true
-    toc_depth: 1
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: pygments
+        number_sections: false
+        self_contained: true
+        theme: paper
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
 params:
-    bcbFile: "data/bcb.rda"
-    design: !r formula(~condition)
+    seFile: "data/rna_se.rda"
+    design: "~time + condition"
     contrast: "condition"
-    alpha: 0.01
+    conditions: !r c("condition", "time") # first one used in some plots
+    alpha: 0.05
     lfc: 0
     outputDir: "."
+    cache_dir: "../cache"
 ---
 
 ```{r knitr-setup}
@@ -38,6 +36,7 @@ opts_chunk[["set"]](
     bootstrap.show.code = FALSE,
     cache = TRUE,
     cache.lazy = TRUE,
+    cache.path = params$cache_dir,
     dev = c("png", "pdf"),
     error = TRUE,
     fig.height = 10,
@@ -55,22 +54,26 @@ theme_set(
 theme_update(
     legend.justification = "center",
     legend.position = "bottom")
-download.file("https://github.com/hbc/bcbioRNASeq/raw/master/inst/rmarkdown/shared/bibliography.bib", "bibliography.bib")
+
 ```
 
 ```{r setup, message=FALSE}
 library(DESeq2)
-library(bcbioRNASeq)
+library(SummarizedExperiment)
 library(DEGreport)
 library(pheatmap)
-
+library(dplyr)
+library(readr)
 # Load bcbioRNASeq object
-bcbName <- load(params$bcbFile)
-bcb <- get(bcbName, inherits = FALSE)
-
+load(params$seFile)
+bcb <-se
+colData(bcb)[["time"]] = gsub("-[0-9]$", "", colData(se)[["sample"]])
+colData(bcb)[["condition"]] = as.factor(colData(bcb)[["condition"]])
+lfc = params$lfc
+alpha = params$alpha
 # Directory paths
 outputDir <- params$outputDir
-dataDir <- dirname(params$bcbFile)
+dataDir <- dirname(params$seFile)
 countsDir <- file.path(outputDir, "results", "counts")
 dir.create(countsDir, showWarnings = FALSE, recursive = TRUE)
 deDir <- file.path(outputDir, "results", "differential_expression")
@@ -80,14 +83,24 @@ dir.create(deDir, showWarnings = FALSE, recursive = TRUE)
 
 ```{r dds, results="hide", eval=!file.exists(file.path(dataDir, "dds.rda"))}
 # help("design", "DESeq2")
-dds <- DESeqDataSetFromTximport(
-    txi = txi(bcb),
+dds <- DESeqDataSetFromMatrix(
+    countData = assay(bcb),
     colData = colData(bcb),
-    design = params$design) %>%
+    design = formula(params$design)) %>%
     DESeq()
-rld <- rlog(dds)
-saveData(dds, rld, dir = dataDir)
+rld <- varianceStabilizingTransformation(dds)
+save(dds, rld, file = file.path(dataDir, "dds.rda"))
 ```
+
+# PCA
+
+Let's take a look at the PCA analysis.
+
+```{r general-pca, fig.width=6, fig.height=6}
+degPCA(assays(bcb)[["vst"]], colData(bcb), condition = params$condition[1]) +
+    ggrepel::geom_text_repel(aes(label=sample))
+```
+
 
 # Results
 
@@ -97,12 +110,14 @@ saveData(dds, rld, dir = dataDir)
 # for all possible paris: degComps(dds, combs = column_name, pairs = TRUE)
 # for specific contrasts: degComps(dds, contrasts = list(c(column_name, group1, group2),
 #                                                        c(column_name, group1, group3)))
-comparisons = degComps(dds, combs = params$contrast)
-saveData(comparisons, dir = dataDir)
+
+comparisons = degComps(dds, combs = params$contrast, type = "ashr")
+
+save(comparisons, file = file.path(dataDir, "comparisons.rda"))
 ```
 
 ```{r load, results="hide"}
-lapply(list.files(dataDir, full.names = TRUE), load, environment()) %>% invisible()
+lapply(file.path(dataDir, c("dds.rda", "comparisons.rda")), load, environment()) %>% invisible()
 ```
 
 We performed the analysis using a BH adjusted *P* value cutoff of `r params$alpha` and a log fold-change (LFC) ratio cutoff of `r params$lfc`.
@@ -133,7 +148,7 @@ Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and
 ```{r plot_ma, results="asis"}
 lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
-    print(plotMA(comparisons[[x]]))
+    print(degMA(comparisons[[x]]))
     cat("\n\n")
 }) %>%  invisible()
 ```
@@ -163,9 +178,11 @@ lapply(names(comparisons), function(x){
     if (length(s) < 2){
         cat("Less than two genes, no possible to plot")
     }else{
-        pheatmap(counts(bcb, "vst")[s,],scale = "row",
-                           show_rownames = FALSE, clustering_method = "ward.D2",
-                           clustering_distance_cols = "correlation")
+        p=pheatmap(assays(bcb)[["vst"]][s,], scale = "row",
+                 annotation_col = as.data.frame(colData(bcb)[,params$conditions, drop=F]),
+                 show_rownames = FALSE, show_colnames = FALSE, clustering_method = "ward.D2",
+                 clustering_distance_cols = "correlation")
+        print(p)
     }
     cat("\n\n")
 }) %>%  invisible()
@@ -186,8 +203,8 @@ lapply(names(comparisons), function(x){
     if (length(s) < 2){
         cat("Less than two genes, no possible to plot")
     }else{
-        degPCA(assay(rld)[significants(comparisons[[x]]),],
-               colData(bcb), condition = interestingGroups(bcb)[1]) %>% print
+        degPCA(assays(bcb)[["vst"]][s,],
+               colData(bcb), condition = params$conditions[1]) %>% print
         
         cat("\n\n")
     }
@@ -203,11 +220,9 @@ We defined significance as genes with abs(log2FC) >  `r cat(lfc)` and FDR < `r c
 ```{r patterns}
 # choose the significants genes. 
 # In this case the first is used. `sig` should be a character vector with genes.
-sig = significants(comparisons[[1]], fc = lfc, padj = alpha)
-pattern = degPatterns(counts(bcb, "rlog")[sig,],
-                      colData(bcb), time = interestingGroups(bcb)[1])
-rio::export(pattern[["df"]])
-saveData(pattern, dir = dataDir)
+sig = significants(comparisons, fc = params$lfc, padj = params$alpha)
+pattern = degPatterns(assays(bcb)[["vst"]][sig,],
+                      colData(bcb), time = params$conditions[1])
 ```
 
 ## Top genes {.tabset}
@@ -216,16 +231,16 @@ saveData(pattern, dir = dataDir)
 resTbl = lapply(names(comparisons), function(x){
     cat("### ", x, "\n")
     p = degPlot(bcb, genes = significants(comparisons[[x]])[1:9],
-            xs = interestingGroups(bcb)[1],
-            slot = "normalized", log2 = FALSE,
-            ann = c("ensgene", "symbol"))
+            xs = params$conditions[1],
+            slot = "vst", log2 = FALSE,
+            ann = c("gene_id", "gene_name"))
     print(p)
     cat("\n\n")
     res = deg(comparisons[[x]], tidy = "tibble") %>% 
-        left_join(rowData(bcb) %>% as.data.frame, by = c("gene" = "ensgene")) %>% 
+        left_join(rowData(bcb) %>% as.data.frame, by = c("gene" = "gene_id")) %>% 
         left_join(pattern[["df"]], by = c("gene" = "genes"))
-    dir.create(file.path(deDir, x), showWarnings = FALSE, recursive = TRUE)
-    write_csv(res, file.path(deDir, x, paste0(x, ".csv.gz")))
+   dir.create(file.path(deDir, x), showWarnings = FALSE, recursive = TRUE)
+   write_csv(res, file.path(deDir, x, paste0(x, ".csv.gz")))
     res
 })
 names(resTbl) = names(comparisons)
@@ -286,11 +301,7 @@ RNA-seq counts were generated by [bcbio][] and [bcbioRNASeq][] using [salmon][] 
 # R session information {.tabset}
 
 ```{r session_info}
-mdHeader("`devtools::session_info()`", level = 2)
 devtools::session_info()
-mdHeader("`utils::sessionInfo()`", level = 2)
-sessionInfo()
-mdHeader("YAML params", level = 2)
 print(params)
 ```
 
