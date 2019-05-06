@@ -4,7 +4,7 @@ date: "`r Sys.Date()`"
 params:
     rcc_folder: ""
     metadata_file: ""
-    rlf_file: ""
+    rlf_file: NULL
     output_dir: "."
     hk_min_counts: 200
 output:
@@ -174,7 +174,7 @@ pca_plot_custom = function(pc,comps, nc1, nc2,colorby,shapeby=NULL,
 # Load files and create RccSet object
 
 rccFiles = list.files(params$rcc_folder,pattern = "*.RCC",full.names = TRUE)
-eset = newRccSet(rccFiles = rccFiles, extraPdata = params$metadata_file)
+eset = newRccSet(rccFiles = rccFiles, extraPdata = params$metadata_file, rlf = params$rlf_file)
 ```
 
 
