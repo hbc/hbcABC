@@ -99,11 +99,39 @@ Here, we display the different samples in our dataset and any pertinent informat
 
 ## QC metrics table?
 
-## Sample similarity
+## Sample similarity {.tabset}
 If bcbio is already running deepTools I think we can easily compute a multiBAM matrix which can be useful to make nicer plots here (rather than the ChIPQC ones)
 
 
 ### PCA
+
 ### Correlation Heatmap
+
+
+## Replicate Evaluation 
+ - the use of `GRanges::findOverlaps`
+ - `idr` R package
+ - Shannan's plot
+ 
+ ## Profile plots and Heatmaps
+ 
+ - ChIPseeker can do this but is not based on read density
+ - If we have the ChIPQC object loaded, is there some way we can plot that ourseleves? Or another package?
+ 
+ ## Annotation
+ 
+ - Annotate individual sample peaks?
+ - Annotate IDR/overlapping peaks between replicates?
+ - ChIPseeker plots for evaluating annotaions in genomic features (barplots)
+ 
+ ## Functional Analysis
+ 
+ - clusterProfiler over-representation analysis of target genes
+ - dotPlot of terms
+ 
+ ## Motif Analysis
+ 
+ - R-based tools?
+ - have bcbio run HOMER and link the reports here? 
 
 
