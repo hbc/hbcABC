@@ -1,0 +1,109 @@
+---
+title: "ChIP-seq Analysis Report"
+author: "`r getOption('author')`"
+date: "`r Sys.Date()`"
+bibliography: bibliography.bib
+html_document:
+    code_folding: hide
+    df_print: paged
+    highlight: pygments
+    number_sections: false
+    self_contained: true
+    theme: cosmo
+    toc: true
+    toc_float:
+        collapsed: true
+        smooth_scroll: false
+pdf_document:
+    number_sections: false
+    toc: true
+    toc_depth: 1
+params:
+    chipQCFile: "data/chipQCobj.rda"
+    alpha: 0.01
+    outputDir: "."
+---
+
+```{r knitr-setup}
+# Set seed for reproducibility
+set.seed(1454944673)
+library(knitr)
+library(ggplot2)
+
+opts_chunk[["set"]](
+    autodep = TRUE,
+    bootstrap.show.code = FALSE,
+    cache = TRUE,
+    cache.lazy = TRUE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    fig.height = 10,
+    fig.retina = 2,
+    fig.width = 10,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = TRUE,
+    # formatR required for tidy code
+    tidy = TRUE,
+    warning = FALSE)
+
+theme_set(
+    theme_light(base_size = 14))
+theme_update(
+    legend.justification = "center",
+    legend.position = "bottom")
+download.file("https://github.com/hbc/bcbioRNASeq/raw/master/inst/rmarkdown/shared/bibliography.bib", "bibliography.bib")
+```
+
+```{r setup, message=FALSE}
+
+loadlibs <- function(){
+library(ChIPQC)
+library(ChIPseeker)
+library(reshape)
+library(pheatmap)
+library(RColorBrewer)
+library(gridExtra)
+}
+suppressPackageStartupMessages(loadlibs())
+
+
+# Load ChIPQC object straight from bcbio??
+
+
+# Directory paths
+outputDir <- params$outputDir
+dataDir <- dirname(params$bcbFile)
+resDir <- file.path(outputDir, "results")
+dir.create(deDir, showWarnings = FALSE, recursive = TRUE)
+```
+
+# Overview
+
+- Principal Investigator: 
+- Researcher:
+- Experiment: 
+
+> Add a short description of the project here
+
+* * *
+
+## Sample metadata
+
+Here, we display the different samples in our dataset and any pertinent information about them. We list:
+
+- total number of reads
+- total number of uniquely mapped reads (?) 
+- total number of peaks called for each sample
+
+
+## QC metrics table?
+
+## Sample similarity
+If bcbio is already running deepTools I think we can easily compute a multiBAM matrix which can be useful to make nicer plots here (rather than the ChIPQC ones)
+
+
+### PCA
+### Correlation Heatmap
+
+
