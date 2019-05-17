@@ -21,7 +21,7 @@ params:
 ```{r setup, include=FALSE}
 library(knitr)
 opts_chunk$set(tidy=TRUE, highlight=TRUE, dev="png",
-               cache=TRUE, highlight=TRUE, autodep=TRUE, 
+               cache=TRUE, autodep=TRUE, 
                warning=FALSE, error=FALSE,
                eval=TRUE, fig.width= 6, fig.height = 5,
                message=FALSE, prompt=TRUE, comment='', fig.cap='',
