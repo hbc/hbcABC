@@ -1,6 +1,5 @@
-name: Differential Expression
+name: ChIP-seq analysis
 description: >
-  Template for differential gene expression analysis.
-  It supports multiple contrasts and include
-  gene expression profile detection with degPattern.
+  Template for ChIP-seq analysis to aggregate pre-computed QC metrics and generate a few new plots.
+  It works with data stored in the ChIPQC object, and include annotation of peaks and a basic funtional analysis.
 create_dir: false

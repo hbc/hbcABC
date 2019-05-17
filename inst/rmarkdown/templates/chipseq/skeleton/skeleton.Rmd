@@ -67,10 +67,6 @@ library(gridExtra)
 }
 suppressPackageStartupMessages(loadlibs())
 
-
-# Load ChIPQC object straight from bcbio??
-
-
 # Directory paths
 outputDir <- params$outputDir
 dataDir <- dirname(params$bcbFile)
@@ -88,6 +84,26 @@ dir.create(deDir, showWarnings = FALSE, recursive = TRUE)
 
 * * *
 
+## Load in data
+
+```{r}
+
+## If bcbio generates this we just need:
+# load('data/chipQCobj.rda`)
+
+## Load sample data
+samples <- read.csv('meta/samplesheet_chr12.csv')
+View(samples)
+
+## Create ChIPQC object
+chipObj <- ChIPQC(samples, annotation="hg19") 
+
+## Create ChIPQC report
+ChIPQCreport(chipObj, reportName="ChIP QC report: Nanog and Pou5f1", reportFolder="ChIPQCreport")
+
+```
+
+
 ## Sample metadata
 
 Here, we display the different samples in our dataset and any pertinent information about them. We list:
@@ -96,40 +112,87 @@ Here, we display the different samples in our dataset and any pertinent informat
 - total number of uniquely mapped reads (?) 
 - total number of peaks called for each sample
 
+```{r}
+QCmetrics(chipObj)
+QCmetadata(chipObj)
 
-## QC metrics table?
+```
+
 
 ## Sample similarity {.tabset}
 If bcbio is already running deepTools I think we can easily compute a multiBAM matrix which can be useful to make nicer plots here (rather than the ChIPQC ones)
 
+### Correlation Heatmap
+
+```{r heatmap, fig.height=8, fig.width=8}
+
+# Read in data
+counts <- read.delim("deepTools/readCounts.tab", sep="\t")
+
+# Create row names from chromosomal coordinates
+test <- apply(counts[,2:3], 1, function(x){paste(x, collapse='-')})
+test <- cbind(as.character(counts[,1]), test)
+rnames <- apply(test, 1, function(x){paste(x, collapse=':')})
+
+plot_counts <- data.frame(counts[,4:ncol(counts)], row.names=rnames)
+
+# Change column names
+cnames <- sapply(meta$shortname, function(x){grep(x, colnames(plot_counts))})
+plot_counts <- plot_counts[,as.vector(cnames)]
+colnames(plot_counts) <- meta$shortname
+
+# Set annotation and colors
+annotation <- data.frame(meta[,c(2,4,6)], row.names=meta$shortname)
+heat.colors <- brewer.pal(6, "YlOrRd")
+
+pheatmap(cor(plot_counts), color=heat.colors, annotation=annotation)
+
+```
 
 ### PCA
 
-### Correlation Heatmap
+Based on PC1 of all samples, the greatest amount of variance can be attributed to the H3K27 IP samples. For the rest of the samples we don't really see segregation of samples by either strain or IP.  
 
+```{r pca,  fig.align='center', warning=FALSE, message=FALSE}
+
+pca <- prcomp(t(plot_counts))
+df <- cbind(meta, pca$x[,c('PC1', 'PC2')]) 
+  
+# Plot with sample names used as data points
+ ggplot(df) + 
+  geom_point(aes(PC1, PC2, color = IP, shape=strain), size=5) +
+  theme_bw() +
+  xlab('PC1 (43.6% variance explained)') +
+  ylab('PC2 (36.3% variance explained)') +
+  # geom_text(aes(label=df$shortname, size=5)) +
+  theme(plot.title = element_text(size = rel(1.5)),
+        axis.title = element_text(size = rel(1.5)),
+        axis.text = element_text(size = rel(1.25)))
+
+```
 
 ## Replicate Evaluation 
  - the use of `GRanges::findOverlaps`
  - `idr` R package
  - Shannan's plot
  
- ## Profile plots and Heatmaps
+## Profile plots and Heatmaps
  
  - ChIPseeker can do this but is not based on read density
  - If we have the ChIPQC object loaded, is there some way we can plot that ourseleves? Or another package?
  
- ## Annotation
+## Annotation
  
  - Annotate individual sample peaks?
  - Annotate IDR/overlapping peaks between replicates?
  - ChIPseeker plots for evaluating annotaions in genomic features (barplots)
  
- ## Functional Analysis
+## Functional Analysis
  
  - clusterProfiler over-representation analysis of target genes
  - dotPlot of terms
  
- ## Motif Analysis
+## Motif Analysis
  
  - R-based tools?
  - have bcbio run HOMER and link the reports here? 
