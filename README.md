@@ -25,7 +25,7 @@ Please go to [general_start](http://htmlpreview.github.com/?https://github.com/h
 
 ## Templates
 
-* [Index](http://htmlpreview.github.com/?https://github.com/hbc/hbcABC/blob/master/docs/reference/index.html)
+* [Index](http://htmlpreview.github.com/?https://github.com/hbc/hbcABC/blob/master/docs/articles/list_of_templates.html)
 * legacy fastrna differential expression: this works with fastrna pipeline using the legacy RNAseq template from Rory's code.
 
 * Complex differential expression: This template support multiple complex or
