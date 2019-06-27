@@ -11,7 +11,7 @@ press knitr button directly without testing the sections.
 
 ## General tips:
 
-Please go to [general_start](http://htmlpreview.github.com/?https://github.com/naumenko-sa/hbcABC/blob/master/docs/articles/general_start.html) to get regular tips for all templates.
+Please go to [general_start](http://htmlpreview.github.com/?blob/master/docs/articles/general_start.html) to get regular tips for all templates.
 
 ## Templates
 
