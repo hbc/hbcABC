@@ -9,12 +9,23 @@ for specific analysis like chipseq, small-rna, complex rnaseq ... etc
 Probably all of them will need some work in some chunks, so don't 
 press knitr button directly without testing the sections.
 
+## Installation
+
+```r
+if (!require("BiocManager")) {
+    install.packages("BiocManager")
+}
+BiocManager::install("remotes")
+BiocManager::install("hbc/bcbioRNASeq")
+```
+
 ## General tips:
 
-Please go to [general_start](http://htmlpreview.github.com/?blob/master/docs/articles/general_start.html) to get regular tips for all templates.
+Please go to [general_start](http://htmlpreview.github.com/?https://github.com/hbc/hbcABC/blob/master/docs/articles/general_start.html) to get regular tips for all templates.
 
 ## Templates
 
+* [Index](http://htmlpreview.github.com/?https://github.com/hbc/hbcABC/blob/master/docs/reference/index.html)
 * legacy fastrna differential expression: this works with fastrna pipeline using the legacy RNAseq template from Rory's code.
 
 * Complex differential expression: This template support multiple complex or
